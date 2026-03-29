@@ -296,28 +296,69 @@ await fetch(`${api}/push/register`, {
 
 ### EAS Build Profile
 
-```json
-// eas.json
-{
-  "build": {
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    },
-    "production": {
-      "distribution": "store"
-    }
-  }
-}
+Die `eas.json` enthält vorkonfigurierte Build-Profile:
+
+| Profile | Zweck | Distribution |
+|---------|-------|--------------|
+| `development` | Dev-Client mit Hot Reload | Internal (APK/Simulator) |
+| `preview` | Test-Builds für QA | Internal (APK) |
+| `production` | Store-Ready Builds | Store (AAB/IPA) |
+
+### Lokaler Build
+
+```bash
+# Preview Build (schnell, APK)
+eas build --platform android --profile preview
+
+# Production Build (AAB für Play Store)
+eas build --platform android --profile production
+
+# iOS Build
+eas build --platform ios --profile production
+```
+
+### GitHub Actions (Automatisch)
+
+Der `eas-build.yml` Workflow ermöglicht automatisierte Builds:
+
+```yaml
+# Manueller Trigger via GitHub UI:
+# - Platform: android | ios | all
+# - Profile: development | preview | production
+# - Submit to Store: true/false
+```
+
+**Benötigte GitHub Secrets:**
+
+| Secret | Beschreibung | Pflicht |
+|--------|--------------|---------|
+| `EXPO_TOKEN` | Expo Access Token | ✅ |
+| `EAS_PROJECT_ID` | EAS Project ID | ✅ |
+| `APPLE_ID` | Apple Developer Account | iOS Store |
+| `ASC_APP_ID` | App Store Connect App ID | iOS Store |
+| `APPLE_TEAM_ID` | Apple Team ID | iOS Store |
+
+**Workflow auslösen:**
+1. GitHub Repo → Actions → "EAS Build Pipeline"
+2. "Run workflow" klicken
+3. Parameter wählen → "Run workflow"
+
+**Auto-Build bei Tags:**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+# → Triggert automatisch Production Build
 ```
 
 ### Umgebungsvariablen
 
 ```bash
-# In EAS Secrets oder .env
+# In EAS Secrets oder eas.json
 EAS_PROJECT_ID=xxx
+EXPO_PUBLIC_API_URL=https://api.kunde.de
+EXPO_PUBLIC_WP_URL=https://wp.kunde.de/wp-json/ka/v1
+
+# Optional
 SENTRY_DSN=xxx
 ```
 
