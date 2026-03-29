@@ -1,14 +1,85 @@
 @import "tailwindcss";
 @import "driver.js/dist/driver.css";
 
+/**
+ * AppFabrik White-Label Theme System
+ * 
+ * CSS-Variablen werden dynamisch vom ThemeProvider gesetzt
+ * basierend auf der tenant.ts Konfiguration.
+ * 
+ * Fallback-Werte hier für SSR / Pre-Hydration.
+ */
+
 :root {
-  --background: #0f0f0f;
+  /* Brand Colors - werden von ThemeProvider überschrieben */
+  --color-primary: #2C3A1C;
+  --color-primary-light: #4A6030;
+  --color-primary-dark: #1A2410;
+  --color-secondary: #C5A55A;
+  --color-secondary-light: #D4BC7F;
+  --color-secondary-dark: #A68A3E;
+  
+  /* Background Colors */
+  --color-background: #F8F7F2;
+  --color-background-alt: #FFFFFF;
+  --color-surface: #FFFFFF;
+  
+  /* Text Colors */
+  --color-text: #1A1A1A;
+  --color-text-muted: #6B7280;
+  --color-text-on-primary: #FFFFFF;
+  --color-text-on-secondary: #1A1A1A;
+  
+  /* Semantic Colors */
+  --color-success: #16A34A;
+  --color-success-light: #DCFCE7;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-error: #DC2626;
+  --color-error-light: #FEE2E2;
+  --color-info: #3B82F6;
+  --color-info-light: #DBEAFE;
+  
+  /* Border & Divider */
+  --color-border: #E5E7EB;
+  --color-divider: #E5E7EB;
+  
+  /* Sidebar */
+  --color-sidebar-bg: #2C3A1C;
+  --color-sidebar-text: #FFFFFF;
+  --color-sidebar-active: #C5A55A;
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-size-base: 16px;
+  
+  /* Tailwind Aliases */
+  --foreground: var(--color-text);
+  --background: var(--color-background);
+}
+
+/* Dark Mode Overrides */
+.dark {
+  --color-background: #0f0f0f;
+  --color-background-alt: #1a1a1a;
+  --color-surface: #1f1f1f;
+  --color-text: #ffffff;
+  --color-text-muted: #a1a1aa;
+  --color-border: #2a2a2a;
+  --color-divider: #262626;
   --foreground: #ffffff;
+  --background: #0f0f0f;
 }
 
 @theme inline {
+  /* Tailwind v4 Theme Mapping */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  
+  /* Brand Colors für Tailwind */
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
 }
 
 * {
@@ -16,76 +87,177 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Scrollbar */
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-text-on-secondary);
+}
+.btn-secondary:hover {
+  background-color: var(--color-secondary-dark);
+}
+
+/* Surface (Cards, Modals) */
+.surface {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+/* Sidebar */
+.sidebar {
+  background-color: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
+}
+.sidebar-active {
+  color: var(--color-sidebar-active);
+}
+
+/* =============================================================================
+   SCROLLBAR
+   ============================================================================= */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #161616;
+  background: var(--color-background-alt);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: var(--color-border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Dark Mode Scrollbar */
+.dark::-webkit-scrollbar-track {
+  background: #161616;
+}
+.dark::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+}
+.dark::-webkit-scrollbar-thumb:hover {
   background: #3a3a3a;
 }
 
+/* =============================================================================
+   FORM INPUTS
+   ============================================================================= */
+
 /* Date input colors */
 input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.4);
 }
 
-/* Driver.js Tour Styles */
+/* Focus Ring */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   DRIVER.JS TOUR STYLES
+   ============================================================================= */
+
 .driver-popover {
-  background: #1a1a1a !important;
-  border: 1px solid #2a2a2a !important;
-  color: #fff !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
 }
 
 .driver-popover-title {
-  color: #fff !important;
+  color: var(--color-text) !important;
   font-weight: 600 !important;
 }
 
 .driver-popover-description {
-  color: #a1a1aa !important;
+  color: var(--color-text-muted) !important;
 }
 
 .driver-popover-progress-text {
-  color: #71717a !important;
+  color: var(--color-text-muted) !important;
 }
 
 .driver-popover-prev-btn,
 .driver-popover-next-btn {
-  background: #2C3A1C !important;
-  color: #34d399 !important;
+  background: var(--color-primary) !important;
+  color: var(--color-text-on-primary) !important;
   border: none !important;
   font-weight: 500 !important;
 }
 
 .driver-popover-prev-btn:hover,
 .driver-popover-next-btn:hover {
-  background: #3d4f28 !important;
+  background: var(--color-primary-dark) !important;
 }
 
 .driver-popover-close-btn {
-  color: #71717a !important;
+  color: var(--color-text-muted) !important;
 }
 
 .driver-popover-close-btn:hover {
-  color: #fff !important;
+  color: var(--color-text) !important;
 }
 
 .driver-popover-arrow-side-left.driver-popover-arrow,
 .driver-popover-arrow-side-right.driver-popover-arrow,
 .driver-popover-arrow-side-top.driver-popover-arrow,
 .driver-popover-arrow-side-bottom.driver-popover-arrow {
-  border-color: #1a1a1a !important;
+  border-color: var(--color-surface) !important;
+}
+
+/* =============================================================================
+   SEMANTIC COLOR UTILITIES
+   ============================================================================= */
+
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
+.text-info { color: var(--color-info); }
+
+.bg-success { background-color: var(--color-success); }
+.bg-success-light { background-color: var(--color-success-light); }
+.bg-warning { background-color: var(--color-warning); }
+.bg-warning-light { background-color: var(--color-warning-light); }
+.bg-error { background-color: var(--color-error); }
+.bg-error-light { background-color: var(--color-error-light); }
+.bg-info { background-color: var(--color-info); }
+.bg-info-light { background-color: var(--color-info-light); }
+
+/* =============================================================================
+   TRANSITION UTILITIES
+   ============================================================================= */
+
+.theme-transition {
+  transition: 
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }

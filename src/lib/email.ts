@@ -108,6 +108,78 @@ export function rechnungEmailHtml(daten: {
   `
 }
 
+// ─── Legacy Email Service API ────────────────────────────────────────────────
+// Abwärtskompatibilität für alte Aufrufe (emailService.xxx)
+
+export const emailService = {
+  async auftragErstellt(daten: {
+    auftragId: string
+    auftragNummer: string
+    auftragTitel: string
+    waldbesitzerName?: string
+    waldbesitzerEmail?: string
+    flaeche_ha?: number
+    standort?: string
+  }) {
+    // Nur an Admin/Büro benachrichtigen, nicht an Waldbesitzer
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER
+    if (!adminEmail) return { skipped: true }
+
+    return sendEmail({
+      to: adminEmail,
+      subject: `Neuer Auftrag: ${daten.auftragNummer} - ${daten.auftragTitel}`,
+      html: `
+        <h2>Neuer Auftrag erstellt</h2>
+        <p><strong>Nummer:</strong> ${daten.auftragNummer}</p>
+        <p><strong>Titel:</strong> ${daten.auftragTitel}</p>
+        ${daten.waldbesitzerName ? `<p><strong>Waldbesitzer:</strong> ${daten.waldbesitzerName}</p>` : ''}
+        ${daten.standort ? `<p><strong>Standort:</strong> ${daten.standort}</p>` : ''}
+        ${daten.flaeche_ha ? `<p><strong>Fläche:</strong> ${daten.flaeche_ha} ha</p>` : ''}
+      `,
+    })
+  },
+
+  async auftragStatusUpdate(daten: {
+    auftragNummer: string
+    auftragTitel: string
+    neuerStatus: string
+    waldbesitzerEmail?: string
+    kundenName?: string
+  }) {
+    if (!daten.waldbesitzerEmail) return { skipped: true }
+
+    return sendEmail({
+      to: daten.waldbesitzerEmail,
+      subject: `Auftrag ${daten.auftragNummer}: Status aktualisiert`,
+      html: auftragStatusEmailHtml({
+        auftragNummer: daten.auftragNummer,
+        auftragTitel: daten.auftragTitel,
+        neuerStatus: daten.neuerStatus,
+        kundenName: daten.kundenName,
+      }),
+    })
+  },
+
+  async lohnabrechnungFreigegeben(daten: {
+    mitarbeiterEmail: string
+    mitarbeiterName: string
+    monat: string
+    nettoLohn: number
+  }) {
+    return sendEmail({
+      to: daten.mitarbeiterEmail,
+      subject: `Lohnabrechnung ${daten.monat} freigegeben`,
+      html: `
+        <h2>Lohnabrechnung freigegeben</h2>
+        <p>Hallo ${daten.mitarbeiterName},</p>
+        <p>Ihre Lohnabrechnung für <strong>${daten.monat}</strong> wurde freigegeben.</p>
+        <p><strong>Nettolohn:</strong> ${daten.nettoLohn.toFixed(2)} €</p>
+        <p>Sie können die Details im ForstManager einsehen.</p>
+      `,
+    })
+  },
+}
+
 export function auftragStatusEmailHtml(daten: {
   auftragNummer: string
   auftragTitel: string
