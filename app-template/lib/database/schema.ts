@@ -2,16 +2,34 @@
  * AppFabrik App — WatermelonDB Schema
  * 
  * Generisches Offline-First Schema für Field Service Apps.
- * Branchenspezifische Erweiterungen in separaten Schema-Dateien.
+ * Branchenspezifische Erweiterungen via Schema-Extensions.
+ * 
+ * Core Tables (immer vorhanden):
+ * - users: Lokale Benutzer-Kopie
+ * - tasks: Aufträge / Jobs
+ * - time_entries: Zeiterfassung
+ * - protocols: Protokolle / Reports
+ * - photos: Fotos
+ * - gps_tracks: GPS-Tracking-Punkte
+ * - sync_queue: Ausstehende Sync-Operationen
+ * - sync_meta: Sync-Status pro Entity-Typ
+ * - documents: Dokument-Referenzen
+ * - notifications: Push-Benachrichtigungen
+ * 
+ * Extensions (per Tenant aktivierbar):
+ * - forestry: Pflanzflächen, Saatguternten, Pflanzgut, Abnahmen
+ * - landscaping: Projekte, Messungen, Materialien
+ * - construction: Baustellen, Sicherheitschecks, Gerätelogs
  */
 
-import { appSchema, tableSchema } from '@nozbe/watermelondb';
+import { appSchema, tableSchema, TableSchema } from '@nozbe/watermelondb';
+import { getExtensionTables, getCombinedSchemaVersion } from './schemaExtensions';
 
 // =============================================================================
 // SCHEMA VERSION
 // =============================================================================
 
-export const SCHEMA_VERSION = 1;
+export const CORE_SCHEMA_VERSION = 1;
 
 // =============================================================================
 // CORE TABLES (always present)
@@ -223,23 +241,69 @@ const notificationsTable = tableSchema({
 });
 
 // =============================================================================
-// SCHEMA EXPORT
+// CORE TABLES ARRAY
+// =============================================================================
+
+export const coreTables: TableSchema[] = [
+  usersTable,
+  tasksTable,
+  timeEntriesTable,
+  protocolsTable,
+  photosTable,
+  gpsTracksTable,
+  syncQueueTable,
+  syncMetaTable,
+  documentsTable,
+  notificationsTable,
+];
+
+// =============================================================================
+// SCHEMA FACTORY
+// =============================================================================
+
+/**
+ * Create schema with optional extensions
+ * Call this AFTER registering any extensions
+ */
+export function createSchema(): ReturnType<typeof appSchema> {
+  const extensionTables = getExtensionTables();
+  const allTables = [...coreTables, ...extensionTables];
+  const version = getCombinedSchemaVersion(CORE_SCHEMA_VERSION);
+  
+  console.log(`📊 Creating schema v${version} with ${allTables.length} tables`);
+  console.log(`   Core: ${coreTables.length} | Extensions: ${extensionTables.length}`);
+  
+  return appSchema({
+    version,
+    tables: allTables,
+  });
+}
+
+// =============================================================================
+// DEFAULT SCHEMA (core only)
 // =============================================================================
 
 export const schema = appSchema({
-  version: SCHEMA_VERSION,
-  tables: [
-    usersTable,
-    tasksTable,
-    timeEntriesTable,
-    protocolsTable,
-    photosTable,
-    gpsTracksTable,
-    syncQueueTable,
-    syncMetaTable,
-    documentsTable,
-    notificationsTable,
-  ],
+  version: CORE_SCHEMA_VERSION,
+  tables: coreTables,
 });
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Get table names from current schema
+ */
+export function getTableNames(): string[] {
+  return coreTables.map(t => t.name);
+}
+
+/**
+ * Check if a table exists in core schema
+ */
+export function hasTable(name: string): boolean {
+  return coreTables.some(t => t.name === name);
+}
 
 export default schema;

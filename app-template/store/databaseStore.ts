@@ -2,12 +2,20 @@
  * Database Store — WatermelonDB Instance Management
  * 
  * Lazy initialization to avoid crash before auth.
+ * Supports schema extensions for tenant-specific tables.
+ * 
+ * Usage:
+ * 1. Register extensions before calling initDatabase()
+ * 2. Call initDatabase() after user login
+ * 3. Use getDb() to access the database instance
  */
 
 import { create } from 'zustand';
 import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
-import schema from '../lib/database/schema';
+import { createSchema } from '../lib/database/schema';
+import { coreModelClasses } from '../lib/database/models';
+import { getExtensionModels } from '../lib/database/schemaExtensions';
 
 // =============================================================================
 // TYPES
@@ -43,6 +51,15 @@ export const useDatabaseStore = create<DatabaseState>((set, get) => ({
     set({ isInitializing: true, error: null });
     
     try {
+      // Create schema with any registered extensions
+      const schema = createSchema();
+      
+      // Combine core + extension models
+      const extensionModels = getExtensionModels();
+      const allModelClasses = [...coreModelClasses, ...extensionModels];
+      
+      console.log(`🗄️ Initializing WatermelonDB with ${allModelClasses.length} models`);
+      
       const adapter = new SQLiteAdapter({
         schema,
         jsi: true,          // Enable JSI for better performance
@@ -53,10 +70,7 @@ export const useDatabaseStore = create<DatabaseState>((set, get) => ({
       
       const database = new Database({
         adapter,
-        modelClasses: [
-          // Import model classes here
-          // User, Task, TimeEntry, Protocol, Photo, etc.
-        ],
+        modelClasses: allModelClasses,
       });
       
       set({
