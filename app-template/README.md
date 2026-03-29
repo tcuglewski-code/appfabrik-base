@@ -1,0 +1,346 @@
+# AppFabrik App Template
+
+White-Label Mobile App Template für Field Service Management.
+
+## 🚀 Quick Start
+
+### 1. Template kopieren
+
+```bash
+# Neues Projekt erstellen
+cp -r app-template ~/projects/kunde-app
+cd ~/projects/kunde-app
+```
+
+### 2. Tenant konfigurieren
+
+Bearbeite `config/tenant.ts`:
+
+```typescript
+export const appConfig: AppConfig = {
+  id: 'mein-kunde',
+  appName: 'Mein Kunde App',
+  bundleId: 'com.meinkunde.app',
+  api: {
+    baseUrl: 'https://api.meinkunde.de/api',
+    // ...
+  },
+  colors: {
+    light: {
+      primary: '#1E40AF',  // Kundenfarbe
+      // ...
+    },
+  },
+  // ...
+};
+```
+
+### 3. Assets anpassen
+
+```
+assets/
+├── logo.png            # App-Logo (512x512)
+├── splash.png          # Splash Screen (1242x2688)
+├── adaptive-icon.png   # Android Icon (512x512)
+└── notification-icon.png
+```
+
+### 4. Installieren & Starten
+
+```bash
+npm install
+npx expo start
+```
+
+### 5. EAS Build
+
+```bash
+# Einmalig: EAS Setup
+eas build:configure
+
+# Preview Build (Android)
+eas build --platform android --profile preview
+
+# Production Build
+eas build --platform android --profile production
+eas build --platform ios --profile production
+```
+
+---
+
+## 📁 Projektstruktur
+
+```
+app-template/
+├── app/                    # Expo Router Screens
+│   ├── _layout.tsx         # Root Layout + Providers
+│   ├── index.tsx           # Auth Redirect
+│   ├── login.tsx           # Login Screen
+│   ├── (admin)/            # Admin-Rolle Screens
+│   ├── (gf)/               # Gruppenführer Screens
+│   ├── (mitarbeiter)/      # Mitarbeiter Screens
+│   └── (shared)/           # Geteilte Screens
+├── components/             # UI Components
+│   └── ui/                 # Basis-Komponenten
+├── config/
+│   └── tenant.ts           # ⭐ Tenant-Konfiguration
+├── hooks/                  # Custom Hooks
+├── lib/                    # Utilities
+│   └── database/           # WatermelonDB
+├── store/                  # Zustand Stores
+├── theme/                  # Theme System
+├── assets/                 # Icons, Splash, etc.
+├── app.config.ts           # Expo Config
+└── package.json
+```
+
+---
+
+## ⚙️ Tenant-Konfiguration
+
+Die `config/tenant.ts` enthält alle anpassbaren Aspekte:
+
+### Grundinfo
+
+```typescript
+{
+  id: 'mein-kunde',           // Unique ID
+  appName: 'Mein Kunde App',  // Display Name
+  bundleId: 'com.kunde.app',  // Bundle ID
+  version: '1.0.0',
+}
+```
+
+### API-Verbindung
+
+```typescript
+api: {
+  baseUrl: 'https://api.kunde.de/api',
+  wpBaseUrl: 'https://wordpress.kunde.de/wp-json/ka/v1', // optional
+  syncEndpoint: '/sync',
+  timeout: 30000,
+}
+```
+
+### Farben
+
+```typescript
+colors: {
+  light: {
+    primary: '#2C5F2D',
+    secondary: '#97BC62',
+    background: '#F5F7F2',
+    // ... vollständige Palette
+  },
+  dark: {
+    // Dark Mode Farben
+  },
+}
+```
+
+### Module aktivieren/deaktivieren
+
+```typescript
+modules: {
+  dashboard: { enabled: true, icon: 'home' },
+  auftraege: { enabled: true, label: 'Aufträge' },
+  protokolle: { enabled: true },
+  // Branchenspezifisch:
+  saatguternte: { enabled: false },  // Nur für Forst
+  abnahmen: { enabled: false },
+}
+```
+
+### Rollen
+
+```typescript
+roles: [
+  {
+    id: 'admin',
+    name: 'Administrator',
+    homeRoute: '/(admin)/dashboard',
+    bottomTabs: ['dashboard', 'auftraege', 'team', 'einstellungen'],
+  },
+  {
+    id: 'mitarbeiter',
+    name: 'Mitarbeiter',
+    homeRoute: '/(mitarbeiter)/start',
+    bottomTabs: ['start', 'stunden', 'profil'],
+  },
+]
+```
+
+### Labels (Branchenanpassung)
+
+```typescript
+labels: {
+  auftrag: 'Service-Auftrag',      // oder 'Pflanzauftrag'
+  mitarbeiter: 'Techniker',        // oder 'Pflanzer'
+  team: 'Service-Team',            // oder 'Pflanzkolonne'
+}
+```
+
+### Features
+
+```typescript
+features: {
+  offlineMode: true,
+  pushNotifications: true,
+  gpsTracking: true,
+  photoCapture: true,
+  signatureCapture: true,
+  darkMode: true,
+}
+```
+
+---
+
+## 📱 Neue Screens hinzufügen
+
+### 1. Generischer Screen
+
+```typescript
+// app/(mitarbeiter)/mein-screen.tsx
+
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { getColors } from '../../config/tenant';
+
+export default function MeinScreen() {
+  const colorScheme = useColorScheme();
+  const colors = getColors(colorScheme === 'dark' ? 'dark' : 'light');
+  
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.text }]}>
+        Mein Screen
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16 },
+  title: { fontSize: 24, fontWeight: '600' },
+});
+```
+
+### 2. Branchenspezifischer Screen
+
+Für branchenspezifische Screens (z.B. Saatguternte):
+
+```typescript
+// app/(mitarbeiter)/saatgut/index.tsx
+
+import { appConfig } from '../../../config/tenant';
+
+export default function SaatgutScreen() {
+  // Prüfen ob Modul aktiviert
+  if (!appConfig.modules.saatguternte.enabled) {
+    return null; // oder Redirect
+  }
+  
+  // Screen-Logik...
+}
+```
+
+---
+
+## 🔄 Offline & Sync
+
+### WatermelonDB Schema erweitern
+
+```typescript
+// lib/database/schema.ts
+
+const meineTabelle = tableSchema({
+  name: 'meine_daten',
+  columns: [
+    { name: 'remote_id', type: 'string' },
+    { name: 'titel', type: 'string' },
+    // ...
+  ],
+});
+```
+
+### Sync-Queue nutzen
+
+```typescript
+import { addToSyncQueue } from '../lib/database/syncQueue';
+
+// Offline-Änderung queuen
+await addToSyncQueue('meine_daten', entityId, 'create', payload);
+```
+
+---
+
+## 🔔 Push Notifications
+
+```typescript
+// In app/_layout.tsx oder eigener Hook
+
+import * as Notifications from 'expo-notifications';
+
+// Token registrieren
+const token = await Notifications.getExpoPushTokenAsync();
+
+// An Backend senden
+await fetch(`${api}/push/register`, {
+  method: 'POST',
+  body: JSON.stringify({ token: token.data }),
+});
+```
+
+---
+
+## 📦 Build & Deploy
+
+### EAS Build Profile
+
+```json
+// eas.json
+{
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "distribution": "store"
+    }
+  }
+}
+```
+
+### Umgebungsvariablen
+
+```bash
+# In EAS Secrets oder .env
+EAS_PROJECT_ID=xxx
+SENTRY_DSN=xxx
+```
+
+---
+
+## 📋 Checkliste: Neuer Kunde
+
+- [ ] Template kopieren
+- [ ] `config/tenant.ts` anpassen (ID, Name, Farben, API)
+- [ ] Assets erstellen (Logo, Splash, Icons)
+- [ ] Bundle-ID in Expo-Konsole registrieren
+- [ ] EAS-Projekt erstellen
+- [ ] `eas.json` konfigurieren
+- [ ] Secrets setzen (API-Keys, Sentry DSN)
+- [ ] Preview-Build testen
+- [ ] Production-Build erstellen
+- [ ] App Store / Play Store Upload
+
+---
+
+## 🔗 Weitere Ressourcen
+
+- [AppFabrik Web Template](../README.md)
+- [Tenant Config Reference](./config/tenant.ts)
+- [Expo Documentation](https://docs.expo.dev)
+- [WatermelonDB Docs](https://watermelondb.dev)
