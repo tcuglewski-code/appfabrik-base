@@ -1,957 +1,473 @@
 /**
- * AppFabrik Tenant Configuration
+ * AppFabrik Tenant Configuration System
  * 
- * Diese Datei definiert alle konfigurierbaren Aspekte eines Tenants.
- * Passe sie für jeden neuen Kunden an.
+ * Vollständig typsicher mit Zod-Validation.
+ * Tenant-spezifische Konfigurationen liegen in src/config/tenants/
  * 
  * Workflow für neuen Kunden:
- * 1. Kopiere diese Datei
- * 2. Passe alle Werte an den Kunden an
- * 3. Setze ENV-Variablen (DATABASE_URL, AUTH_SECRET, etc.)
- * 4. Deploy mit `vercel deploy`
+ * 1. Kopiere src/config/tenants/demo.ts → src/config/tenants/[kunde].ts
+ * 2. Passe alle Werte an
+ * 3. Setze TENANT_ID env variable
+ * 4. Deploy
  */
 
-// =============================================================================
-// TYPE DEFINITIONS
-// =============================================================================
-
-export interface TenantColors {
-  // Brand Colors
-  primary: string;           // Hauptfarbe (Buttons, Links, Highlights)
-  primaryLight: string;      // Hellere Variante
-  primaryDark: string;       // Dunklere Variante
-  secondary: string;         // Akzentfarbe
-  secondaryLight: string;
-  secondaryDark: string;
-  
-  // Background Colors
-  background: string;        // Haupt-Hintergrund
-  backgroundAlt: string;     // Alternative (Cards, Sections)
-  surface: string;           // Oberflächen (Modals, Dropdowns)
-  
-  // Text Colors
-  text: string;              // Haupttext
-  textMuted: string;         // Sekundärtext
-  textOnPrimary: string;     // Text auf primary-Hintergrund
-  textOnSecondary: string;   // Text auf secondary-Hintergrund
-  
-  // Semantic Colors
-  success: string;
-  successLight: string;
-  warning: string;
-  warningLight: string;
-  error: string;
-  errorLight: string;
-  info: string;
-  infoLight: string;
-  
-  // Border & Divider
-  border: string;
-  divider: string;
-  
-  // Sidebar/Navigation
-  sidebarBg: string;
-  sidebarText: string;
-  sidebarActive: string;
-}
-
-export interface TenantModule {
-  enabled: boolean;
-  label?: string;           // Überschreibt Standard-Label
-  description?: string;
-  icon?: string;            // Lucide Icon Name
-  permissions?: string[];   // Benötigte Permissions
-}
-
-export interface TenantRole {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  isDefault?: boolean;
-  canBeDeleted?: boolean;
-}
-
-export interface TenantBrancheConfig {
-  id: string;
-  name: string;
-  auftragstypen: string[];
-  leistungseinheiten: string[];
-  protokollFelder?: string[];
-  lagerKategorien?: string[];
-}
-
-export interface TenantIntegration {
-  enabled: boolean;
-  config?: Record<string, unknown>;
-}
-
-export interface TenantConfig {
-  // ==========================================================================
-  // GRUNDINFORMATIONEN
-  // ==========================================================================
-  id: string;                // Unique Tenant ID (z.B. "koch-aufforstung")
-  name: string;              // Vollständiger Firmenname
-  shortName: string;         // Kurzname für UI
-  tagline: string;           // Slogan/Untertitel
-  
-  // ==========================================================================
-  // BRANDING
-  // ==========================================================================
-  branding: {
-    logo: string;            // Pfad zum Logo (z.B. "/logo.png")
-    logoLight: string;       // Logo für hellen Hintergrund
-    logoDark: string;        // Logo für dunklen Hintergrund (Dark Mode)
-    favicon: string;         // Favicon
-    appleTouchIcon?: string;
-    ogImage?: string;        // Open Graph Image für Social Sharing
-  };
-  
-  // ==========================================================================
-  // FARBEN
-  // ==========================================================================
-  colors: TenantColors;
-  
-  // ==========================================================================
-  // TYPOGRAFIE
-  // ==========================================================================
-  typography: {
-    fontFamily: string;
-    fontFamilyMono: string;
-    fontSizeBase: string;
-  };
-  
-  // ==========================================================================
-  // LOKALISIERUNG
-  // ==========================================================================
-  locale: {
-    language: string;        // "de", "en", etc.
-    timezone: string;        // "Europe/Berlin"
-    dateFormat: string;      // "DD.MM.YYYY"
-    timeFormat: string;      // "HH:mm"
-    currency: string;        // "EUR"
-    currencySymbol: string;  // "€"
-  };
-  
-  // ==========================================================================
-  // MODULE / FEATURES
-  // ==========================================================================
-  modules: {
-    // Core-Module (immer verfügbar)
-    dashboard: TenantModule;
-    auftraege: TenantModule;
-    mitarbeiter: TenantModule;
-    
-    // Optionale Core-Module
-    lager: TenantModule;
-    fuhrpark: TenantModule;
-    rechnungen: TenantModule;
-    protokolle: TenantModule;
-    kontakte: TenantModule;
-    dokumente: TenantModule;
-    reports: TenantModule;
-    lohn: TenantModule;
-    wochenplan: TenantModule;
-    saisons: TenantModule;
-    schulungen: TenantModule;
-    gruppen: TenantModule;
-    angebote: TenantModule;
-    
-    // Branchenspezifische Module
-    foerderung: TenantModule;      // Förderanträge (Forst)
-    abnahme: TenantModule;         // Abnahmeprotokolle
-    qualifikationen: TenantModule; // Qualifikationsnachweise
-    saatguternte: TenantModule;    // Saatguternte-Tracking (Forst)
-    flaechen: TenantModule;        // Flächenmanagement mit GeoJSON
-  };
-  
-  // ==========================================================================
-  // ROLLEN & BERECHTIGUNGEN
-  // ==========================================================================
-  roles: TenantRole[];
-  defaultRole: string;       // ID der Standard-Rolle für neue User
-  
-  // ==========================================================================
-  // BRANCHENSPEZIFISCHE KONFIGURATION
-  // ==========================================================================
-  branche: TenantBrancheConfig;
-  
-  // ==========================================================================
-  // LABELS (für unterschiedliche Branchen anpassbar)
-  // ==========================================================================
-  labels: {
-    // Entitäten
-    auftrag: string;
-    auftraege: string;
-    protokoll: string;
-    protokolle: string;
-    mitarbeiter: string;
-    mitarbeiterPlural: string;
-    lager: string;
-    fuhrpark: string;
-    kunde: string;
-    kunden: string;
-    rechnung: string;
-    rechnungen: string;
-    dokument: string;
-    dokumente: string;
-    kontakt: string;
-    kontakte: string;
-    gruppe: string;
-    gruppen: string;
-    saison: string;
-    saisons: string;
-    
-    // Actions
-    neuerAuftrag: string;
-    neuerMitarbeiter: string;
-    neuesProtokoll: string;
-    
-    // Status
-    statusOffen: string;
-    statusInBearbeitung: string;
-    statusAbgeschlossen: string;
-  };
-  
-  // ==========================================================================
-  // KONTAKT & IMPRESSUM
-  // ==========================================================================
-  contact: {
-    email: string;
-    phone: string;
-    mobile?: string;
-    fax?: string;
-    address: string;
-    plz: string;
-    city: string;
-    country: string;
-    website?: string;
-  };
-  
-  legal: {
-    companyName: string;
-    companyType: string;     // "GmbH", "UG", etc.
-    registerId?: string;     // HRB-Nummer
-    registerCourt?: string;  // "Amtsgericht Köln"
-    taxId?: string;          // Steuernummer
-    vatId?: string;          // USt-ID
-    ceo?: string;            // Geschäftsführer
-    privacyUrl: string;
-    imprintUrl: string;
-    termsUrl?: string;
-  };
-  
-  banking: {
-    bankName: string;
-    iban: string;
-    bic: string;
-  };
-  
-  // ==========================================================================
-  // INTEGRATIONEN
-  // ==========================================================================
-  integrations: {
-    nextcloud: TenantIntegration & {
-      config?: {
-        baseUrl: string;
-        basePath: string;
-      };
-    };
-    wordpress: TenantIntegration & {
-      config?: {
-        baseUrl: string;
-        apiPath: string;
-      };
-    };
-    stripe: TenantIntegration;
-    smtp: TenantIntegration & {
-      config?: {
-        host: string;
-        port: number;
-        secure: boolean;
-        from: string;
-        fromName: string;
-      };
-    };
-    webhooks: TenantIntegration & {
-      config?: {
-        statusChange?: string;  // Webhook URL
-        newAuftrag?: string;
-        protokollSubmit?: string;
-      };
-    };
-    slack: TenantIntegration & {
-      config?: {
-        webhookUrl: string;
-        channel: string;
-      };
-    };
-  };
-  
-  // ==========================================================================
-  // FEATURE FLAGS
-  // ==========================================================================
-  features: {
-    darkMode: boolean;
-    multiLanguage: boolean;
-    pushNotifications: boolean;
-    twoFactorAuth: boolean;
-    auditLog: boolean;
-    offlineMode: boolean;
-    gpsTracking: boolean;
-    signaturCapture: boolean;
-    photoUpload: boolean;
-    pdfExport: boolean;
-    excelExport: boolean;
-    customerPortal: boolean;
-    apiAccess: boolean;
-    advancedReporting: boolean;
-    bulkOperations: boolean;
-    customFields: boolean;
-    autoBackup: boolean;
-  };
-  
-  // ==========================================================================
-  // UI-EINSTELLUNGEN
-  // ==========================================================================
-  ui: {
-    sidebarStyle: 'compact' | 'expanded' | 'collapsible';
-    tableRowsPerPage: number;
-    showWelcomeOnboarding: boolean;
-    defaultDashboardWidgets: string[];
-    dateRangePresets: string[];  // ["heute", "woche", "monat", "quartal", "jahr"]
-  };
-  
-  // ==========================================================================
-  // NUMMERNKREISE
-  // ==========================================================================
-  numberFormats: {
-    auftrag: string;         // "AU-{YYYY}-{NNNN}"
-    rechnung: string;        // "RE-{YYYY}-{NNNN}"
-    angebot: string;         // "AN-{YYYY}-{NNNN}"
-    protokoll: string;       // "TP-{YYYY}-{NNNN}"
-  };
-}
+import { z } from 'zod';
 
 // =============================================================================
-// STANDARD-KONFIGURATION (Demo/Template)
-// =============================================================================
-
-export const tenantConfig: TenantConfig = {
-  id: "appfabrik-demo",
-  name: "AppFabrik Demo",
-  shortName: "Demo",
-  tagline: "Field Service Management",
-  
-  branding: {
-    logo: "/logo.png",
-    logoLight: "/logo.png",
-    logoDark: "/logo-dark.png",
-    favicon: "/favicon.ico",
-    appleTouchIcon: "/apple-touch-icon.png",
-    ogImage: "/og-image.png",
-  },
-  
-  colors: {
-    // Brand
-    primary: "#2C3A1C",
-    primaryLight: "#4A6030",
-    primaryDark: "#1A2410",
-    secondary: "#C5A55A",
-    secondaryLight: "#D4BC7F",
-    secondaryDark: "#A68A3E",
-    
-    // Background
-    background: "#F8F7F2",
-    backgroundAlt: "#FFFFFF",
-    surface: "#FFFFFF",
-    
-    // Text
-    text: "#1A1A1A",
-    textMuted: "#6B7280",
-    textOnPrimary: "#FFFFFF",
-    textOnSecondary: "#1A1A1A",
-    
-    // Semantic
-    success: "#16A34A",
-    successLight: "#DCFCE7",
-    warning: "#F59E0B",
-    warningLight: "#FEF3C7",
-    error: "#DC2626",
-    errorLight: "#FEE2E2",
-    info: "#3B82F6",
-    infoLight: "#DBEAFE",
-    
-    // UI
-    border: "#E5E7EB",
-    divider: "#E5E7EB",
-    sidebarBg: "#2C3A1C",
-    sidebarText: "#FFFFFF",
-    sidebarActive: "#C5A55A",
-  },
-  
-  typography: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontFamilyMono: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSizeBase: "16px",
-  },
-  
-  locale: {
-    language: "de",
-    timezone: "Europe/Berlin",
-    dateFormat: "DD.MM.YYYY",
-    timeFormat: "HH:mm",
-    currency: "EUR",
-    currencySymbol: "€",
-  },
-  
-  modules: {
-    dashboard: { enabled: true, icon: "LayoutDashboard" },
-    auftraege: { enabled: true, icon: "ClipboardList" },
-    mitarbeiter: { enabled: true, icon: "Users" },
-    lager: { enabled: true, icon: "Warehouse" },
-    fuhrpark: { enabled: true, icon: "Truck" },
-    rechnungen: { enabled: true, icon: "Receipt" },
-    protokolle: { enabled: true, icon: "FileText" },
-    kontakte: { enabled: true, icon: "Contact" },
-    dokumente: { enabled: true, icon: "FolderOpen" },
-    reports: { enabled: true, icon: "BarChart3" },
-    lohn: { enabled: true, icon: "Banknote" },
-    wochenplan: { enabled: true, icon: "Calendar" },
-    saisons: { enabled: true, icon: "CalendarRange" },
-    schulungen: { enabled: false, icon: "GraduationCap" },
-    gruppen: { enabled: true, icon: "UsersRound" },
-    angebote: { enabled: true, icon: "FileSignature" },
-    // Branchenspezifisch
-    foerderung: { enabled: false, icon: "Sprout" },
-    abnahme: { enabled: false, icon: "CheckSquare" },
-    qualifikationen: { enabled: false, icon: "Award" },
-    saatguternte: { enabled: false, icon: "TreeDeciduous" },
-    flaechen: { enabled: false, icon: "Map" },
-  },
-  
-  roles: [
-    {
-      id: "admin",
-      name: "Administrator",
-      description: "Voller Zugriff auf alle Funktionen",
-      permissions: ["*"],
-      canBeDeleted: false,
-    },
-    {
-      id: "gruppenführer",
-      name: "Gruppenführer",
-      description: "Verwaltet Teams und Protokolle",
-      permissions: [
-        "auftraege:read", "auftraege:update",
-        "protokolle:*",
-        "mitarbeiter:read",
-        "lager:read", "lager:create",
-        "fuhrpark:read",
-        "gruppen:read",
-      ],
-    },
-    {
-      id: "mitarbeiter",
-      name: "Mitarbeiter",
-      description: "Basis-Zugriff für Außendienst",
-      permissions: [
-        "auftraege:read",
-        "protokolle:read", "protokolle:create",
-        "stunden:create",
-        "profil:*",
-      ],
-      isDefault: true,
-    },
-    {
-      id: "viewer",
-      name: "Betrachter",
-      description: "Nur Lesezugriff",
-      permissions: [
-        "dashboard:read",
-        "auftraege:read",
-        "reports:read",
-      ],
-    },
-    {
-      id: "kunde",
-      name: "Kunde",
-      description: "Kundenportal-Zugang",
-      permissions: [
-        "kundenportal:*",
-        "auftraege:read:own",
-        "rechnungen:read:own",
-        "dokumente:read:own",
-      ],
-    },
-  ],
-  defaultRole: "mitarbeiter",
-  
-  branche: {
-    id: "generic",
-    name: "Allgemein",
-    auftragstypen: [
-      "Service",
-      "Wartung",
-      "Installation",
-      "Reparatur",
-      "Beratung",
-      "Sonstiges",
-    ],
-    leistungseinheiten: [
-      "Stück",
-      "Stunde",
-      "Pauschal",
-      "lfm",
-      "m²",
-      "m³",
-    ],
-    protokollFelder: ["arbeitsbeginn", "arbeitsende", "leistung", "bericht"],
-    lagerKategorien: ["Material", "Werkzeug", "Ersatzteile", "Verbrauchsmaterial"],
-  },
-  
-  labels: {
-    auftrag: "Auftrag",
-    auftraege: "Aufträge",
-    protokoll: "Tagesprotokoll",
-    protokolle: "Tagesprotokolle",
-    mitarbeiter: "Mitarbeiter",
-    mitarbeiterPlural: "Mitarbeiter",
-    lager: "Lager",
-    fuhrpark: "Fuhrpark",
-    kunde: "Kunde",
-    kunden: "Kunden",
-    rechnung: "Rechnung",
-    rechnungen: "Rechnungen",
-    dokument: "Dokument",
-    dokumente: "Dokumente",
-    kontakt: "Kontakt",
-    kontakte: "Kontakte",
-    gruppe: "Team",
-    gruppen: "Teams",
-    saison: "Saison",
-    saisons: "Saisons",
-    neuerAuftrag: "Neuer Auftrag",
-    neuerMitarbeiter: "Neuer Mitarbeiter",
-    neuesProtokoll: "Neues Protokoll",
-    statusOffen: "Offen",
-    statusInBearbeitung: "In Bearbeitung",
-    statusAbgeschlossen: "Abgeschlossen",
-  },
-  
-  contact: {
-    email: "info@example.com",
-    phone: "",
-    address: "",
-    plz: "",
-    city: "",
-    country: "Deutschland",
-  },
-  
-  legal: {
-    companyName: "Muster GmbH",
-    companyType: "GmbH",
-    privacyUrl: "/datenschutz",
-    imprintUrl: "/impressum",
-  },
-  
-  banking: {
-    bankName: "",
-    iban: "",
-    bic: "",
-  },
-  
-  integrations: {
-    nextcloud: { enabled: false },
-    wordpress: { enabled: false },
-    stripe: { enabled: false },
-    smtp: { enabled: false },
-    webhooks: { enabled: false },
-    slack: { enabled: false },
-  },
-  
-  features: {
-    darkMode: true,
-    multiLanguage: false,
-    pushNotifications: true,
-    twoFactorAuth: true,
-    auditLog: true,
-    offlineMode: false,
-    gpsTracking: true,
-    signaturCapture: true,
-    photoUpload: true,
-    pdfExport: true,
-    excelExport: true,
-    customerPortal: false,
-    apiAccess: false,
-    advancedReporting: false,
-    bulkOperations: true,
-    customFields: false,
-    autoBackup: true,
-  },
-  
-  ui: {
-    sidebarStyle: 'collapsible',
-    tableRowsPerPage: 25,
-    showWelcomeOnboarding: true,
-    defaultDashboardWidgets: ['stats', 'auftraege', 'aktivitaet'],
-    dateRangePresets: ['heute', 'woche', 'monat', 'quartal', 'jahr'],
-  },
-  
-  numberFormats: {
-    auftrag: "AU-{YYYY}-{NNNN}",
-    rechnung: "RE-{YYYY}-{NNNN}",
-    angebot: "AN-{YYYY}-{NNNN}",
-    protokoll: "TP-{YYYY}-{NNNN}",
-  },
-};
-
-// =============================================================================
-// REFERENZ-KONFIGURATION: KOCH AUFFORSTUNG GMBH
+// ZOD SCHEMAS
 // =============================================================================
 
 /**
- * Beispiel-Konfiguration für einen Forstbetrieb.
- * Diese kann als Vorlage für ähnliche Kunden verwendet werden.
+ * Farb-Schema (Hex-Farben)
  */
-export const kochAufforstungConfig: TenantConfig = {
-  id: "koch-aufforstung",
-  name: "Koch Aufforstung GmbH",
-  shortName: "Koch",
-  tagline: "Professionelle Forstwirtschaft seit 1985",
+const HexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Muss HEX-Farbcode sein (#RRGGBB)');
+
+/**
+ * Tenant Colors Schema
+ */
+export const TenantColorsSchema = z.object({
+  // Brand Colors
+  primary: HexColorSchema.describe('Hauptfarbe (Buttons, Links, Highlights)'),
+  primaryLight: HexColorSchema.describe('Hellere Primary-Variante'),
+  primaryDark: HexColorSchema.describe('Dunklere Primary-Variante'),
+  secondary: HexColorSchema.describe('Akzentfarbe'),
+  secondaryLight: HexColorSchema.describe('Hellere Secondary-Variante'),
+  secondaryDark: HexColorSchema.describe('Dunklere Secondary-Variante'),
   
-  branding: {
-    logo: "/logo-koch.png",
-    logoLight: "/logo-koch.png",
-    logoDark: "/logo-koch-dark.png",
-    favicon: "/favicon-koch.ico",
-    appleTouchIcon: "/apple-touch-icon-koch.png",
-    ogImage: "/og-koch.png",
-  },
+  // Background Colors
+  background: HexColorSchema.describe('Haupt-Hintergrund'),
+  backgroundAlt: HexColorSchema.describe('Alternative Hintergrundfarbe (Cards)'),
+  surface: HexColorSchema.describe('Oberflächen (Modals, Dropdowns)'),
   
-  colors: {
-    // Waldgrün Palette
-    primary: "#2C5F2D",        // Waldgrün
-    primaryLight: "#4A8C4B",
-    primaryDark: "#1A3A1A",
-    secondary: "#97BC62",      // Hellgrün/Laub
-    secondaryLight: "#B5D389",
-    secondaryDark: "#7A9F45",
-    
-    // Background
-    background: "#F5F7F2",     // Leicht grünlicher Hintergrund
-    backgroundAlt: "#FFFFFF",
-    surface: "#FFFFFF",
-    
-    // Text
-    text: "#1A2E1A",
-    textMuted: "#4A5D4A",
-    textOnPrimary: "#FFFFFF",
-    textOnSecondary: "#1A2E1A",
-    
-    // Semantic
-    success: "#2C5F2D",
-    successLight: "#DCE8DC",
-    warning: "#D4A843",
-    warningLight: "#FDF6E3",
-    error: "#8B2323",
-    errorLight: "#F8E0E0",
-    info: "#3B6E8F",
-    infoLight: "#E3EFF5",
-    
-    // UI
-    border: "#C8D4C8",
-    divider: "#E5EBE5",
-    sidebarBg: "#1A3A1A",
-    sidebarText: "#FFFFFF",
-    sidebarActive: "#97BC62",
-  },
+  // Text Colors
+  text: HexColorSchema.describe('Haupttext'),
+  textMuted: HexColorSchema.describe('Sekundärtext'),
+  textOnPrimary: HexColorSchema.describe('Text auf primary-Hintergrund'),
+  textOnSecondary: HexColorSchema.describe('Text auf secondary-Hintergrund'),
   
-  typography: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    fontFamilyMono: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSizeBase: "16px",
-  },
+  // Semantic Colors
+  success: HexColorSchema,
+  successLight: HexColorSchema,
+  warning: HexColorSchema,
+  warningLight: HexColorSchema,
+  error: HexColorSchema,
+  errorLight: HexColorSchema,
+  info: HexColorSchema,
+  infoLight: HexColorSchema,
   
-  locale: {
-    language: "de",
-    timezone: "Europe/Berlin",
-    dateFormat: "DD.MM.YYYY",
-    timeFormat: "HH:mm",
-    currency: "EUR",
-    currencySymbol: "€",
-  },
+  // Border & Divider
+  border: HexColorSchema,
+  divider: HexColorSchema,
   
-  modules: {
-    dashboard: { enabled: true, icon: "LayoutDashboard" },
-    auftraege: { enabled: true, label: "Pflanzaufträge", icon: "TreeDeciduous" },
-    mitarbeiter: { enabled: true, label: "Pflanzer", icon: "Users" },
-    lager: { enabled: true, label: "Pflanzgut & Material", icon: "Warehouse" },
-    fuhrpark: { enabled: true, icon: "Truck" },
-    rechnungen: { enabled: true, icon: "Receipt" },
-    protokolle: { enabled: true, label: "Pflanzprotokolle", icon: "FileText" },
-    kontakte: { enabled: true, label: "Waldbesitzer & Partner", icon: "Contact" },
-    dokumente: { enabled: true, icon: "FolderOpen" },
-    reports: { enabled: true, icon: "BarChart3" },
-    lohn: { enabled: true, icon: "Banknote" },
-    wochenplan: { enabled: true, icon: "Calendar" },
-    saisons: { enabled: true, label: "Pflanzsaisons", icon: "CalendarRange" },
-    schulungen: { enabled: true, label: "Qualifikationen", icon: "GraduationCap" },
-    gruppen: { enabled: true, label: "Pflanzkolonnen", icon: "UsersRound" },
-    angebote: { enabled: true, icon: "FileSignature" },
-    // Branchenspezifisch (aktiviert für Forst)
-    foerderung: { enabled: true, label: "Förderberatung", icon: "Sprout", description: "GAK & Landesförderprogramme" },
-    abnahme: { enabled: true, label: "Abnahmeprotokolle", icon: "CheckSquare" },
-    qualifikationen: { enabled: true, icon: "Award" },
-    saatguternte: { enabled: true, icon: "TreeDeciduous" },
-    flaechen: { enabled: true, label: "Waldflächen", icon: "Map" },
-  },
+  // Sidebar/Navigation
+  sidebarBg: HexColorSchema,
+  sidebarText: HexColorSchema,
+  sidebarActive: HexColorSchema,
+});
+
+/**
+ * Modul-Konfiguration Schema
+ */
+export const TenantModuleSchema = z.object({
+  enabled: z.boolean().describe('Ist das Modul aktiviert?'),
+  label: z.string().optional().describe('Überschreibt Standard-Label'),
+  description: z.string().optional(),
+  icon: z.string().optional().describe('Lucide Icon Name'),
+  permissions: z.array(z.string()).optional().describe('Benötigte Permissions'),
+});
+
+/**
+ * Rollen-Schema
+ */
+export const TenantRoleSchema = z.object({
+  id: z.string().min(1).describe('Unique Role ID'),
+  name: z.string().min(1).describe('Anzeigename'),
+  description: z.string().describe('Beschreibung der Rolle'),
+  permissions: z.array(z.string()).describe('Array von Permission-Strings'),
+  isDefault: z.boolean().optional().describe('Standard-Rolle für neue User'),
+  canBeDeleted: z.boolean().optional().describe('Kann die Rolle gelöscht werden?'),
+});
+
+/**
+ * Branchen-Konfiguration Schema
+ */
+export const TenantBrancheSchema = z.object({
+  id: z.string().min(1).describe('Branchen-ID'),
+  name: z.string().min(1).describe('Branchenname'),
+  auftragstypen: z.array(z.string()).min(1).describe('Mögliche Auftragstypen'),
+  leistungseinheiten: z.array(z.string()).min(1).describe('Einheiten für Leistungen'),
+  protokollFelder: z.array(z.string()).optional().describe('Pflichtfelder in Protokollen'),
+  lagerKategorien: z.array(z.string()).optional().describe('Kategorien für Lagerverwaltung'),
+});
+
+/**
+ * Integration Schema
+ */
+export const TenantIntegrationSchema = z.object({
+  enabled: z.boolean(),
+  config: z.record(z.unknown()).optional(),
+});
+
+/**
+ * Branding Schema
+ */
+export const TenantBrandingSchema = z.object({
+  logo: z.string().describe('Pfad zum Logo'),
+  logoLight: z.string().describe('Logo für hellen Hintergrund'),
+  logoDark: z.string().describe('Logo für Dark Mode'),
+  favicon: z.string().describe('Favicon-Pfad'),
+  appleTouchIcon: z.string().optional(),
+  ogImage: z.string().optional().describe('Open Graph Image für Social Sharing'),
+});
+
+/**
+ * Typografie Schema
+ */
+export const TenantTypographySchema = z.object({
+  fontFamily: z.string().describe('Hauptschriftart'),
+  fontFamilyMono: z.string().describe('Monospace-Schrift'),
+  fontSizeBase: z.string().describe('Basis-Schriftgröße'),
+});
+
+/**
+ * Lokalisierung Schema
+ */
+export const TenantLocaleSchema = z.object({
+  language: z.enum(['de', 'en', 'pl', 'fr']).describe('Sprache'),
+  timezone: z.string().describe('Zeitzone'),
+  dateFormat: z.string().describe('Datumsformat'),
+  timeFormat: z.string().describe('Zeitformat'),
+  currency: z.enum(['EUR', 'USD', 'GBP', 'CHF', 'PLN']).describe('Währung'),
+  currencySymbol: z.string().describe('Währungssymbol'),
+});
+
+/**
+ * Labels Schema (branchenspezifische Bezeichnungen)
+ */
+export const TenantLabelsSchema = z.object({
+  // Entitäten
+  auftrag: z.string(),
+  auftraege: z.string(),
+  protokoll: z.string(),
+  protokolle: z.string(),
+  mitarbeiter: z.string(),
+  mitarbeiterPlural: z.string(),
+  lager: z.string(),
+  fuhrpark: z.string(),
+  kunde: z.string(),
+  kunden: z.string(),
+  rechnung: z.string(),
+  rechnungen: z.string(),
+  dokument: z.string(),
+  dokumente: z.string(),
+  kontakt: z.string(),
+  kontakte: z.string(),
+  gruppe: z.string(),
+  gruppen: z.string(),
+  saison: z.string(),
+  saisons: z.string(),
   
-  roles: [
-    {
-      id: "admin",
-      name: "Administrator",
-      description: "Voller Zugriff auf alle Funktionen",
-      permissions: ["*"],
-      canBeDeleted: false,
-    },
-    {
-      id: "verwaltung",
-      name: "Verwaltung/Büro",
-      description: "Zugriff auf Verwaltungsfunktionen",
-      permissions: [
-        "auftraege:*",
-        "mitarbeiter:*",
-        "rechnungen:*",
-        "lager:*",
-        "dokumente:*",
-        "reports:*",
-        "kontakte:*",
-        "angebote:*",
-        "lohn:*",
-        "foerderung:*",
-      ],
-    },
-    {
-      id: "gruppenführer",
-      name: "Gruppenführer",
-      description: "Leitet eine Pflanzkolonne",
-      permissions: [
-        "auftraege:read", "auftraege:update",
-        "protokolle:*",
-        "mitarbeiter:read",
-        "lager:read", "lager:create",
-        "fuhrpark:read", "fuhrpark:update",
-        "gruppen:read",
-        "abnahme:create",
-        "stunden:*",
-      ],
-    },
-    {
-      id: "mitarbeiter",
-      name: "Pflanzer",
-      description: "Außendienstmitarbeiter",
-      permissions: [
-        "auftraege:read",
-        "protokolle:read",
-        "stunden:create",
-        "profil:*",
-      ],
-      isDefault: true,
-    },
-    {
-      id: "waldbesitzer",
-      name: "Waldbesitzer",
-      description: "Kundenportal für Auftraggeber",
-      permissions: [
-        "kundenportal:*",
-        "auftraege:read:own",
-        "protokolle:read:own",
-        "rechnungen:read:own",
-        "dokumente:read:own",
-        "foerderung:read",
-      ],
-    },
-  ],
-  defaultRole: "mitarbeiter",
+  // Actions
+  neuerAuftrag: z.string(),
+  neuerMitarbeiter: z.string(),
+  neuesProtokoll: z.string(),
   
-  branche: {
-    id: "forst",
-    name: "Forstwirtschaft",
-    auftragstypen: [
-      "Aufforstung",
-      "Flächenvorbereitung",
-      "Kulturschutz",
-      "Kulturpflege",
-      "Saatguternte",
-      "Zaunbau",
-      "Pflanzenbeschaffung",
-      "Jungbestandspflege",
-      "Beratung",
-    ],
-    leistungseinheiten: [
-      "ha",           // Hektar (Pflanzfläche)
-      "Stück",        // Pflanzen
-      "lfm",          // Laufende Meter (Zaun)
-      "Stunde",       // Arbeitszeit
-      "Pauschal",
-      "kg",           // Saatgut
-    ],
-    protokollFelder: [
-      "arbeitsbeginn",
-      "arbeitsende",
-      "pflanzflaeche",
-      "pflanzenAnzahl",
-      "baumart",
-      "pflanzverfahren",
-      "witterung",
-      "temperatur",
-      "bodenverhaeltnisse",
-      "besonderheiten",
-    ],
-    lagerKategorien: [
-      "Pflanzen (Nadelholz)",
-      "Pflanzen (Laubholz)",
-      "Saatgut",
-      "Zaunmaterial",
-      "Wuchshüllen",
-      "Dünger",
-      "Pflanzenschutz",
-      "Werkzeug",
-      "Ersatzteile",
-    ],
-  },
+  // Status
+  statusOffen: z.string(),
+  statusInBearbeitung: z.string(),
+  statusAbgeschlossen: z.string(),
+});
+
+/**
+ * Kontakt-Schema
+ */
+export const TenantContactSchema = z.object({
+  email: z.string().email(),
+  phone: z.string().optional(),
+  mobile: z.string().optional(),
+  fax: z.string().optional(),
+  address: z.string(),
+  plz: z.string(),
+  city: z.string(),
+  country: z.string().default('Deutschland'),
+  website: z.string().url().optional(),
+});
+
+/**
+ * Legal/Impressum Schema
+ */
+export const TenantLegalSchema = z.object({
+  companyName: z.string().min(1),
+  companyType: z.string().describe('GmbH, UG, AG, etc.'),
+  registerId: z.string().optional().describe('HRB-Nummer'),
+  registerCourt: z.string().optional(),
+  taxId: z.string().optional().describe('Steuernummer'),
+  vatId: z.string().optional().describe('USt-ID'),
+  ceo: z.string().optional().describe('Geschäftsführer'),
+  privacyUrl: z.string(),
+  imprintUrl: z.string(),
+  termsUrl: z.string().optional(),
+});
+
+/**
+ * Banking Schema
+ */
+export const TenantBankingSchema = z.object({
+  bankName: z.string().optional(),
+  iban: z.string().optional(),
+  bic: z.string().optional(),
+});
+
+/**
+ * Features Schema
+ */
+export const TenantFeaturesSchema = z.object({
+  darkMode: z.boolean().default(true),
+  multiLanguage: z.boolean().default(false),
+  pushNotifications: z.boolean().default(true),
+  twoFactorAuth: z.boolean().default(true),
+  auditLog: z.boolean().default(true),
+  offlineMode: z.boolean().default(false),
+  gpsTracking: z.boolean().default(true),
+  signaturCapture: z.boolean().default(true),
+  photoUpload: z.boolean().default(true),
+  pdfExport: z.boolean().default(true),
+  excelExport: z.boolean().default(true),
+  customerPortal: z.boolean().default(false),
+  apiAccess: z.boolean().default(false),
+  advancedReporting: z.boolean().default(false),
+  bulkOperations: z.boolean().default(true),
+  customFields: z.boolean().default(false),
+  autoBackup: z.boolean().default(true),
+});
+
+/**
+ * UI-Settings Schema
+ */
+export const TenantUISchema = z.object({
+  sidebarStyle: z.enum(['compact', 'expanded', 'collapsible']).default('collapsible'),
+  tableRowsPerPage: z.number().min(10).max(100).default(25),
+  showWelcomeOnboarding: z.boolean().default(true),
+  defaultDashboardWidgets: z.array(z.string()).default(['stats', 'auftraege', 'aktivitaet']),
+  dateRangePresets: z.array(z.string()).default(['heute', 'woche', 'monat', 'quartal', 'jahr']),
+});
+
+/**
+ * Nummernkreise Schema
+ */
+export const TenantNumberFormatsSchema = z.object({
+  auftrag: z.string().describe('Format: AU-{YYYY}-{NNNN}'),
+  rechnung: z.string().describe('Format: RE-{YYYY}-{NNNN}'),
+  angebot: z.string().describe('Format: AN-{YYYY}-{NNNN}'),
+  protokoll: z.string().describe('Format: TP-{YYYY}-{NNNN}'),
+});
+
+/**
+ * Module-Map Schema
+ */
+export const TenantModulesSchema = z.object({
+  // Core-Module
+  dashboard: TenantModuleSchema,
+  auftraege: TenantModuleSchema,
+  mitarbeiter: TenantModuleSchema,
   
-  labels: {
-    auftrag: "Pflanzauftrag",
-    auftraege: "Pflanzaufträge",
-    protokoll: "Pflanzprotokoll",
-    protokolle: "Pflanzprotokolle",
-    mitarbeiter: "Pflanzer",
-    mitarbeiterPlural: "Pflanzer",
-    lager: "Pflanzgutlager",
-    fuhrpark: "Fuhrpark & Geräte",
-    kunde: "Waldbesitzer",
-    kunden: "Waldbesitzer",
-    rechnung: "Rechnung",
-    rechnungen: "Rechnungen",
-    dokument: "Dokument",
-    dokumente: "Dokumente",
-    kontakt: "Kontakt",
-    kontakte: "Kontakte",
-    gruppe: "Pflanzkolonne",
-    gruppen: "Pflanzkolonnen",
-    saison: "Pflanzsaison",
-    saisons: "Pflanzsaisons",
-    neuerAuftrag: "Neuer Pflanzauftrag",
-    neuerMitarbeiter: "Neuer Pflanzer",
-    neuesProtokoll: "Neues Pflanzprotokoll",
-    statusOffen: "Anfrage",
-    statusInBearbeitung: "In Pflanzung",
-    statusAbgeschlossen: "Gepflanzt",
-  },
+  // Optionale Module
+  lager: TenantModuleSchema,
+  fuhrpark: TenantModuleSchema,
+  rechnungen: TenantModuleSchema,
+  protokolle: TenantModuleSchema,
+  kontakte: TenantModuleSchema,
+  dokumente: TenantModuleSchema,
+  reports: TenantModuleSchema,
+  lohn: TenantModuleSchema,
+  wochenplan: TenantModuleSchema,
+  saisons: TenantModuleSchema,
+  schulungen: TenantModuleSchema,
+  gruppen: TenantModuleSchema,
+  angebote: TenantModuleSchema,
   
-  contact: {
-    email: "info@koch-aufforstung.de",
-    phone: "+49 2234 12345",
-    mobile: "+49 170 1234567",
-    address: "Waldstraße 42",
-    plz: "50859",
-    city: "Köln",
-    country: "Deutschland",
-    website: "https://koch-aufforstung.de",
-  },
+  // Branchenspezifische Module
+  foerderung: TenantModuleSchema,
+  abnahme: TenantModuleSchema,
+  qualifikationen: TenantModuleSchema,
+  saatguternte: TenantModuleSchema,
+  flaechen: TenantModuleSchema,
+});
+
+/**
+ * Integrationen Schema
+ */
+export const TenantIntegrationsSchema = z.object({
+  nextcloud: TenantIntegrationSchema.extend({
+    config: z.object({
+      baseUrl: z.string().url(),
+      basePath: z.string(),
+    }).optional(),
+  }),
+  wordpress: TenantIntegrationSchema.extend({
+    config: z.object({
+      baseUrl: z.string().url(),
+      apiPath: z.string(),
+    }).optional(),
+  }),
+  stripe: TenantIntegrationSchema,
+  smtp: TenantIntegrationSchema.extend({
+    config: z.object({
+      host: z.string(),
+      port: z.number(),
+      secure: z.boolean(),
+      from: z.string().email(),
+      fromName: z.string(),
+    }).optional(),
+  }),
+  webhooks: TenantIntegrationSchema.extend({
+    config: z.object({
+      statusChange: z.string().url().optional(),
+      newAuftrag: z.string().url().optional(),
+      protokollSubmit: z.string().url().optional(),
+    }).optional(),
+  }),
+  slack: TenantIntegrationSchema.extend({
+    config: z.object({
+      webhookUrl: z.string().url(),
+      channel: z.string(),
+    }).optional(),
+  }),
+});
+
+/**
+ * Datenbank-Konfiguration Schema
+ */
+export const TenantDatabaseSchema = z.object({
+  provider: z.enum(['neon', 'postgres', 'supabase']).default('neon'),
+  // URL kommt aus ENV, nicht aus Config
+});
+
+/**
+ * Auth-Konfiguration Schema
+ */
+export const TenantAuthSchema = z.object({
+  providers: z.array(z.enum(['credentials', 'magic-link', 'google', 'github'])).default(['credentials', 'magic-link']),
+  sessionMaxAge: z.number().default(30 * 24 * 60 * 60), // 30 Tage in Sekunden
+  requireEmailVerification: z.boolean().default(false),
+  allowRegistration: z.boolean().default(false),
+  passwordMinLength: z.number().min(6).default(8),
+});
+
+// =============================================================================
+// HAUPT-TENANT SCHEMA
+// =============================================================================
+
+export const TenantConfigSchema = z.object({
+  // Grundinformationen
+  id: z.string().min(1).describe('Unique Tenant ID'),
+  name: z.string().min(1).describe('Vollständiger Firmenname'),
+  shortName: z.string().min(1).describe('Kurzname für UI'),
+  tagline: z.string().describe('Slogan/Untertitel'),
   
-  legal: {
-    companyName: "Koch Aufforstung GmbH",
-    companyType: "GmbH",
-    registerId: "HRB 12345",
-    registerCourt: "Amtsgericht Köln",
-    taxId: "215/5781/1234",
-    vatId: "DE123456789",
-    ceo: "Thomas Koch",
-    privacyUrl: "/datenschutz",
-    imprintUrl: "/impressum",
-    termsUrl: "/agb",
-  },
+  // Branding
+  branding: TenantBrandingSchema,
   
-  banking: {
-    bankName: "Sparkasse Köln",
-    iban: "DE89 3704 0044 0123 4567 89",
-    bic: "COBADEFFXXX",
-  },
+  // Farben
+  colors: TenantColorsSchema,
   
-  integrations: {
-    nextcloud: {
-      enabled: true,
-      config: {
-        baseUrl: "http://187.124.18.244:32774",
-        basePath: "/Koch-Aufforstung/",
-      },
-    },
-    wordpress: {
-      enabled: true,
-      config: {
-        baseUrl: "https://koch-aufforstung.de",
-        apiPath: "/wp-json/ka/v1",
-      },
-    },
-    stripe: { enabled: false },
-    smtp: {
-      enabled: true,
-      config: {
-        host: "smtp.hostinger.com",
-        port: 465,
-        secure: true,
-        from: "noreply@koch-aufforstung.de",
-        fromName: "Koch Aufforstung",
-      },
-    },
-    webhooks: {
-      enabled: true,
-      config: {
-        statusChange: "https://mission-control-tawny-omega.vercel.app/api/webhooks/auftrag-status",
-        newAuftrag: "https://mission-control-tawny-omega.vercel.app/api/webhooks/new-auftrag",
-      },
-    },
-    slack: { enabled: false },
-  },
+  // Typografie
+  typography: TenantTypographySchema,
   
-  features: {
-    darkMode: true,
-    multiLanguage: false,
-    pushNotifications: true,
-    twoFactorAuth: true,
-    auditLog: true,
-    offlineMode: true,          // Wichtig für Wald ohne Netz!
-    gpsTracking: true,
-    signaturCapture: true,
-    photoUpload: true,
-    pdfExport: true,
-    excelExport: true,
-    customerPortal: true,       // Waldbesitzer-Portal
-    apiAccess: true,            // WP-Integration
-    advancedReporting: true,
-    bulkOperations: true,
-    customFields: false,
-    autoBackup: true,
-  },
+  // Lokalisierung
+  locale: TenantLocaleSchema,
   
-  ui: {
-    sidebarStyle: 'collapsible',
-    tableRowsPerPage: 25,
-    showWelcomeOnboarding: false, // Bereits genutzt
-    defaultDashboardWidgets: ['stats', 'auftraege', 'wetter', 'saison', 'aktivitaet'],
-    dateRangePresets: ['heute', 'woche', 'monat', 'saison', 'jahr'],
-  },
+  // Module
+  modules: TenantModulesSchema,
   
-  numberFormats: {
-    auftrag: "KA-{YYYY}-{NNNN}",
-    rechnung: "RE-{YYYY}-{NNNN}",
-    angebot: "AN-{YYYY}-{NNNN}",
-    protokoll: "PP-{YYYY}-{NNNN}",
-  },
-};
+  // Rollen & Berechtigungen
+  roles: z.array(TenantRoleSchema).min(1),
+  defaultRole: z.string().describe('ID der Standard-Rolle'),
+  
+  // Auth-Konfiguration
+  auth: TenantAuthSchema.optional().default({
+    providers: ['credentials', 'magic-link'],
+    sessionMaxAge: 30 * 24 * 60 * 60,
+    requireEmailVerification: false,
+    allowRegistration: false,
+    passwordMinLength: 8,
+  }),
+  
+  // Datenbank-Konfiguration
+  database: TenantDatabaseSchema.optional().default({
+    provider: 'neon',
+  }),
+  
+  // Branchenspezifische Konfiguration
+  branche: TenantBrancheSchema,
+  
+  // Labels
+  labels: TenantLabelsSchema,
+  
+  // Kontakt
+  contact: TenantContactSchema,
+  
+  // Legal
+  legal: TenantLegalSchema,
+  
+  // Banking
+  banking: TenantBankingSchema,
+  
+  // Integrationen
+  integrations: TenantIntegrationsSchema,
+  
+  // Features
+  features: TenantFeaturesSchema,
+  
+  // UI-Einstellungen
+  ui: TenantUISchema,
+  
+  // Nummernkreise
+  numberFormats: TenantNumberFormatsSchema,
+});
+
+// =============================================================================
+// TYPE EXPORTS (inferred from Zod)
+// =============================================================================
+
+export type TenantConfig = z.infer<typeof TenantConfigSchema>;
+export type TenantColors = z.infer<typeof TenantColorsSchema>;
+export type TenantModule = z.infer<typeof TenantModuleSchema>;
+export type TenantRole = z.infer<typeof TenantRoleSchema>;
+export type TenantBranche = z.infer<typeof TenantBrancheSchema>;
+export type TenantBranding = z.infer<typeof TenantBrandingSchema>;
+export type TenantTypography = z.infer<typeof TenantTypographySchema>;
+export type TenantLocale = z.infer<typeof TenantLocaleSchema>;
+export type TenantLabels = z.infer<typeof TenantLabelsSchema>;
+export type TenantContact = z.infer<typeof TenantContactSchema>;
+export type TenantLegal = z.infer<typeof TenantLegalSchema>;
+export type TenantBanking = z.infer<typeof TenantBankingSchema>;
+export type TenantFeatures = z.infer<typeof TenantFeaturesSchema>;
+export type TenantUI = z.infer<typeof TenantUISchema>;
+export type TenantNumberFormats = z.infer<typeof TenantNumberFormatsSchema>;
+export type TenantModules = z.infer<typeof TenantModulesSchema>;
+export type TenantIntegrations = z.infer<typeof TenantIntegrationsSchema>;
+export type TenantAuth = z.infer<typeof TenantAuthSchema>;
+export type TenantDatabase = z.infer<typeof TenantDatabaseSchema>;
+
+// =============================================================================
+// VALIDATION HELPER
+// =============================================================================
+
+/**
+ * Validiert eine Tenant-Konfiguration
+ * @throws ZodError bei ungültiger Konfiguration
+ */
+export function validateTenantConfig(config: unknown): TenantConfig {
+  return TenantConfigSchema.parse(config);
+}
+
+/**
+ * Validiert eine Tenant-Konfiguration und gibt Fehler zurück
+ */
+export function safeParseTenantConfig(config: unknown): z.SafeParseReturnType<unknown, TenantConfig> {
+  return TenantConfigSchema.safeParse(config);
+}
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -973,13 +489,24 @@ export function generateCssVariables(config: TenantConfig): Record<string, strin
     '--color-surface': config.colors.surface,
     '--color-text': config.colors.text,
     '--color-text-muted': config.colors.textMuted,
+    '--color-text-on-primary': config.colors.textOnPrimary,
+    '--color-text-on-secondary': config.colors.textOnSecondary,
     '--color-border': config.colors.border,
+    '--color-divider': config.colors.divider,
     '--color-success': config.colors.success,
+    '--color-success-light': config.colors.successLight,
     '--color-warning': config.colors.warning,
+    '--color-warning-light': config.colors.warningLight,
     '--color-error': config.colors.error,
+    '--color-error-light': config.colors.errorLight,
     '--color-info': config.colors.info,
+    '--color-info-light': config.colors.infoLight,
+    '--color-sidebar-bg': config.colors.sidebarBg,
+    '--color-sidebar-text': config.colors.sidebarText,
+    '--color-sidebar-active': config.colors.sidebarActive,
     '--font-family': config.typography.fontFamily,
     '--font-family-mono': config.typography.fontFamilyMono,
+    '--font-size-base': config.typography.fontSizeBase,
   };
 }
 
@@ -989,20 +516,25 @@ export function generateCssVariables(config: TenantConfig): Record<string, strin
 export function hasPermission(
   userRole: string,
   permission: string,
-  config: TenantConfig = tenantConfig
+  config: TenantConfig
 ): boolean {
   const role = config.roles.find(r => r.id === userRole);
   if (!role) return false;
   
-  // Admin hat immer Zugriff
+  // Admin/Wildcard hat immer Zugriff
   if (role.permissions.includes('*')) return true;
   
   // Exakte Übereinstimmung
   if (role.permissions.includes(permission)) return true;
   
   // Wildcard-Check (z.B. "auftraege:*" matched "auftraege:read")
-  const [resource] = permission.split(':');
+  const [resource, action] = permission.split(':');
   if (role.permissions.includes(`${resource}:*`)) return true;
+  
+  // :own Suffix Check (z.B. "auftraege:read:own" < "auftraege:read")
+  if (action && !permission.endsWith(':own')) {
+    if (role.permissions.includes(`${permission}:own`)) return false; // Nur eigene
+  }
   
   return false;
 }
@@ -1010,19 +542,26 @@ export function hasPermission(
 /**
  * Gibt alle aktivierten Module zurück
  */
-export function getEnabledModules(config: TenantConfig = tenantConfig): string[] {
+export function getEnabledModules(config: TenantConfig): string[] {
   return Object.entries(config.modules)
     .filter(([, module]) => module.enabled)
     .map(([key]) => key);
 }
 
 /**
+ * Prüft ob ein Modul aktiviert ist
+ */
+export function isModuleEnabled(moduleName: keyof TenantModules, config: TenantConfig): boolean {
+  return config.modules[moduleName]?.enabled ?? false;
+}
+
+/**
  * Formatiert eine Nummer nach dem konfigurierten Format
  */
 export function formatNumber(
-  type: keyof TenantConfig['numberFormats'],
+  type: keyof TenantNumberFormats,
   sequence: number,
-  config: TenantConfig = tenantConfig
+  config: TenantConfig
 ): string {
   const format = config.numberFormats[type];
   const year = new Date().getFullYear();
@@ -1033,9 +572,88 @@ export function formatNumber(
     .replace('{NNNN}', paddedSeq);
 }
 
+/**
+ * Gibt das Label für eine Entität zurück
+ */
+export function getLabel(key: keyof TenantLabels, config: TenantConfig): string {
+  return config.labels[key] ?? key;
+}
+
+/**
+ * Gibt den Modul-Namen zurück (custom label oder Standard)
+ */
+export function getModuleLabel(moduleName: keyof TenantModules, config: TenantConfig): string {
+  const module = config.modules[moduleName];
+  if (!module) return moduleName;
+  return module.label ?? moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
+}
+
 // =============================================================================
-// EXPORT
+// TENANT LOADER
 // =============================================================================
 
-export type { TenantConfig };
-export default tenantConfig;
+// Tenant-Registry: wird von den Tenant-Configs befüllt
+const tenantRegistry = new Map<string, TenantConfig>();
+
+/**
+ * Registriert einen Tenant
+ */
+export function registerTenant(config: TenantConfig): void {
+  const validated = validateTenantConfig(config);
+  tenantRegistry.set(validated.id, validated);
+}
+
+/**
+ * Lädt einen Tenant nach ID
+ */
+export function getTenant(id: string): TenantConfig | undefined {
+  return tenantRegistry.get(id);
+}
+
+/**
+ * Gibt alle registrierten Tenant-IDs zurück
+ */
+export function getRegisteredTenants(): string[] {
+  return Array.from(tenantRegistry.keys());
+}
+
+/**
+ * Lädt den aktuellen Tenant basierend auf TENANT_ID env variable
+ * Falls nicht gesetzt, wird 'demo' verwendet
+ */
+export function getCurrentTenant(): TenantConfig {
+  const tenantId = process.env.TENANT_ID ?? 'demo';
+  const tenant = getTenant(tenantId);
+  
+  if (!tenant) {
+    throw new Error(
+      `Tenant "${tenantId}" nicht gefunden. ` +
+      `Registrierte Tenants: ${getRegisteredTenants().join(', ') || 'keine'}`
+    );
+  }
+  
+  return tenant;
+}
+
+// =============================================================================
+// RE-EXPORT for backwards compatibility
+// =============================================================================
+
+// Default export (wird von getCurrentTenant() überschrieben nach Laden der Tenants)
+export let tenantConfig: TenantConfig;
+
+/**
+ * Initialisiert das Tenant-System
+ * Muss beim App-Start aufgerufen werden
+ */
+export function initializeTenants(): void {
+  // Dynamisches Laden aller Tenant-Configs
+  // Die Tenant-Dateien rufen registerTenant() auf beim Import
+  
+  // Nach dem Laden setzen wir den aktuellen Tenant
+  try {
+    tenantConfig = getCurrentTenant();
+  } catch {
+    console.warn('Kein Tenant geladen - verwende Demo-Defaults');
+  }
+}
