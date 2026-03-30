@@ -1,0 +1,86 @@
+name: Security Audit
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  schedule:
+    # Wöchentlich Montags 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Security Audit Script
+        env:
+          TENANT_ID: "appfabrik-base"
+          PROJECT_DIR: "."
+        run: |
+          chmod +x scripts/security-audit.sh
+          bash scripts/security-audit.sh
+
+      - name: npm audit (strict)
+        run: npm audit --audit-level=critical
+
+      - name: Upload Audit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report-${{ github.run_id }}
+          path: /tmp/security-audit-*.md
+          retention-days: 30
+
+  dependency-review:
+    name: Dependency Review (PRs only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical
+
+  notify-weekly:
+    name: Weekly Security Summary
+    runs-on: ubuntu-latest
+    needs: security-audit
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Notify Mission Control
+        env:
+          MC_API_KEY: ${{ secrets.MC_API_KEY }}
+          RESULT: ${{ needs.security-audit.result }}
+        run: |
+          EMOJI="✅"
+          PRIORITY="low"
+          [[ "$RESULT" != "success" ]] && EMOJI="🔴" && PRIORITY="high"
+          
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${MC_API_KEY}" \
+            -d "{
+              \"title\": \"${EMOJI} Wöchentlicher Security Report\",
+              \"body\": \"Security Audit Status: ${RESULT}. Details: GitHub Actions → Security Audit Workflow\",
+              \"priority\": \"${PRIORITY}\",
+              \"category\": \"security\"
+            }" \
+            "https://mission-control-tawny-omega.vercel.app/api/notifications" || true
