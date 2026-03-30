@@ -1,0 +1,98 @@
+name: Daily Tenant Backup
+
+on:
+  schedule:
+    # Täglich um 02:00 UTC (03:00 Berlin Winterzeit / 04:00 Sommerzeit)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      tenant_id:
+        description: "Tenant ID (leer = alle)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry Run (kein Upload)"
+        required: false
+        default: "false"
+
+env:
+  BACKUP_RETENTION_DAYS: "30"
+
+jobs:
+  backup:
+    name: Backup ${{ matrix.tenant }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tenant:
+          - koch-aufforstung
+          # Neue Tenants hier hinzufügen:
+          # - muster-betrieb
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PostgreSQL Client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Run Backup
+        env:
+          TENANT_ID: ${{ matrix.tenant }}
+          NEON_DATABASE_URL: ${{ secrets[format('NEON_DATABASE_URL_{0}', matrix.tenant)] }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_RETENTION_DAYS: ${{ env.BACKUP_RETENTION_DAYS }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-central-1
+        run: |
+          chmod +x scripts/backup.sh
+          # Für Dry Run überspringe S3 Upload
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            export BACKUP_S3_BUCKET=""
+            echo "🔵 DRY RUN — kein S3 Upload"
+          fi
+          bash scripts/backup.sh
+
+      - name: Verify Backup
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          TENANT_ID: ${{ matrix.tenant }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-central-1
+          MAX_BACKUP_AGE_HOURS: "2"
+        run: |
+          chmod +x scripts/backup-verify.sh
+          bash scripts/backup-verify.sh
+
+      - name: Upload Backup Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-log-${{ matrix.tenant }}-${{ github.run_id }}
+          path: /tmp/backup_*.log
+          retention-days: 7
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: backup
+    if: failure()
+    steps:
+      - name: Notify Mission Control
+        run: |
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: ${{ secrets.MC_API_KEY }}" \
+            -d '{
+              "title": "🔴 Backup Fehlgeschlagen",
+              "body": "Das tägliche Backup ist fehlgeschlagen! Sofort prüfen.",
+              "priority": "high",
+              "category": "ops"
+            }' \
+            "https://mission-control-tawny-omega.vercel.app/api/notifications" || true
