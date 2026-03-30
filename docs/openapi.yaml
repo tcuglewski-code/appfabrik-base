@@ -1,0 +1,1280 @@
+openapi: 3.0.3
+info:
+  title: AppFabrik Base API
+  description: |
+    REST-API für AppFabrik-basierte Anwendungen.
+    
+    ## Authentifizierung
+    Alle Endpoints (außer `/api/auth/*` und `/api/app/auth`) erfordern eine gültige Session.
+    Die Session wird via NextAuth.js Cookie (`next-auth.session-token`) verwaltet.
+    
+    ## Multi-Tenant
+    Jeder User gehört zu einem Tenant. Die `tenantId` wird aus der Session ermittelt.
+    
+    ## Pagination
+    Listen-Endpoints unterstützen `limit` (max 200) und `offset`.
+    Die Gesamtanzahl wird im Header `X-Total-Count` zurückgegeben.
+  version: 1.0.0
+  contact:
+    name: AppFabrik Support
+    email: support@appfabrik.de
+
+servers:
+  - url: https://{tenant}.vercel.app
+    description: Production (Tenant-spezifisch)
+    variables:
+      tenant:
+        default: ka-forstmanager
+        description: Tenant-Subdomain
+  - url: http://localhost:3000
+    description: Lokale Entwicklung
+
+tags:
+  - name: Auth
+    description: Authentifizierung & Registrierung
+  - name: Aufträge
+    description: Auftrags-Verwaltung
+  - name: Kontakte
+    description: Kontakt-Verwaltung (Kunden, Forstämter, Partner)
+  - name: Mitarbeiter
+    description: Mitarbeiter-Verwaltung
+  - name: Rechnungen
+    description: Rechnungs-Verwaltung
+  - name: Stunden
+    description: Zeiterfassung
+  - name: Lager
+    description: Lagerverwaltung & Material
+  - name: Dokumente
+    description: Dokument-Upload & -Verwaltung
+  - name: Mobile App
+    description: Optimierte Endpoints für Mobile App
+
+paths:
+  # ============================================================
+  # AUTH
+  # ============================================================
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Neuen Benutzer registrieren
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Benutzer erfolgreich registriert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: E-Mail bereits registriert
+
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Passwort ändern
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Passwort erfolgreich geändert
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # AUFTRÄGE
+  # ============================================================
+  /api/auftraege:
+    get:
+      tags: [Aufträge]
+      summary: Liste aller Aufträge
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [anfrage, geplant, aktiv, abgeschlossen, abgerechnet, storniert]
+        - name: typ
+          in: query
+          schema:
+            type: string
+            enum: [pflanzung, pflege, schutz, ernte, sonstiges]
+      responses:
+        '200':
+          description: Liste der Aufträge
+          headers:
+            X-Total-Count:
+              schema:
+                type: integer
+              description: Gesamtanzahl der Ergebnisse
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auftrag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Aufträge]
+      summary: Neuen Auftrag erstellen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuftragCreate'
+      responses:
+        '201':
+          description: Auftrag erfolgreich erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auftrag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auftraege/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Aufträge]
+      summary: Einzelnen Auftrag abrufen
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Auftrag-Details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auftrag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Aufträge]
+      summary: Auftrag aktualisieren
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuftragUpdate'
+      responses:
+        '200':
+          description: Auftrag aktualisiert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auftrag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Aufträge]
+      summary: Auftrag löschen
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: Auftrag gelöscht
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/auftraege/{id}/rechnung-erstellen:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      tags: [Aufträge]
+      summary: Rechnung für Auftrag erstellen
+      security:
+        - sessionAuth: []
+      responses:
+        '201':
+          description: Rechnung erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rechnung'
+        '400':
+          description: Rechnung kann nicht erstellt werden (z.B. bereits abgerechnet)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/auftraege/{id}/material:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Aufträge]
+      summary: Material eines Auftrags abrufen
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Material-Liste
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Material'
+
+  # ============================================================
+  # KONTAKTE
+  # ============================================================
+  /api/kontakte:
+    get:
+      tags: [Kontakte]
+      summary: Liste aller Kontakte
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - name: typ
+          in: query
+          schema:
+            type: string
+            enum: [kunde, forstamt, lieferant, partner, sonstig]
+      responses:
+        '200':
+          description: Liste der Kontakte
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Kontakt'
+
+    post:
+      tags: [Kontakte]
+      summary: Neuen Kontakt erstellen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KontaktCreate'
+      responses:
+        '201':
+          description: Kontakt erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kontakt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/kontakte/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Kontakte]
+      summary: Einzelnen Kontakt abrufen
+      responses:
+        '200':
+          description: Kontakt-Details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kontakt'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Kontakte]
+      summary: Kontakt aktualisieren
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KontaktCreate'
+      responses:
+        '200':
+          description: Kontakt aktualisiert
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Kontakte]
+      summary: Kontakt löschen
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: Kontakt gelöscht
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # MITARBEITER
+  # ============================================================
+  /api/mitarbeiter:
+    get:
+      tags: [Mitarbeiter]
+      summary: Liste aller Mitarbeiter
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - name: aktiv
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Liste der Mitarbeiter
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Mitarbeiter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Mitarbeiter]
+      summary: Neuen Mitarbeiter anlegen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MitarbeiterCreate'
+      responses:
+        '201':
+          description: Mitarbeiter angelegt
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/mitarbeiter/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Mitarbeiter]
+      summary: Einzelnen Mitarbeiter abrufen
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Mitarbeiter-Details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mitarbeiter'
+
+    patch:
+      tags: [Mitarbeiter]
+      summary: Mitarbeiter aktualisieren
+      security:
+        - sessionAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MitarbeiterCreate'
+      responses:
+        '200':
+          description: Mitarbeiter aktualisiert
+
+  # ============================================================
+  # STUNDEN (Zeiterfassung)
+  # ============================================================
+  /api/stunden:
+    get:
+      tags: [Stunden]
+      summary: Zeiteinträge abrufen
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - name: mitarbeiterId
+          in: query
+          schema:
+            type: string
+        - name: auftragId
+          in: query
+          schema:
+            type: string
+        - name: von
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: bis
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Liste der Zeiteinträge
+          headers:
+            X-Total-Count:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stundeneintrag'
+
+    post:
+      tags: [Stunden]
+      summary: Zeiteintrag erfassen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StundeneintragCreate'
+      responses:
+        '201':
+          description: Zeiteintrag erstellt
+
+  # ============================================================
+  # RECHNUNGEN
+  # ============================================================
+  /api/rechnungen:
+    get:
+      tags: [Rechnungen]
+      summary: Liste aller Rechnungen
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [entwurf, offen, bezahlt, storniert, mahnung]
+      responses:
+        '200':
+          description: Liste der Rechnungen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rechnung'
+
+    post:
+      tags: [Rechnungen]
+      summary: Rechnung erstellen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RechnungCreate'
+      responses:
+        '201':
+          description: Rechnung erstellt
+
+  /api/rechnungen/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Rechnungen]
+      summary: Rechnung abrufen
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Rechnungs-Details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rechnung'
+
+    patch:
+      tags: [Rechnungen]
+      summary: Rechnung aktualisieren
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Rechnung aktualisiert
+
+  # ============================================================
+  # LAGER
+  # ============================================================
+  /api/lager:
+    get:
+      tags: [Lager]
+      summary: Lagerbestand abrufen
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - name: kategorie
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lagerbestand
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lagerartikel'
+
+    post:
+      tags: [Lager]
+      summary: Lagerartikel anlegen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LagerartikelCreate'
+      responses:
+        '201':
+          description: Artikel angelegt
+
+  /api/lager/{id}/bewegung:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      tags: [Lager]
+      summary: Lagerbewegung buchen (Ein-/Ausgang)
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [menge, typ]
+              properties:
+                menge:
+                  type: number
+                typ:
+                  type: string
+                  enum: [eingang, ausgang]
+                grund:
+                  type: string
+                auftragId:
+                  type: string
+      responses:
+        '200':
+          description: Bewegung gebucht
+
+  # ============================================================
+  # DOKUMENTE
+  # ============================================================
+  /api/dokumente:
+    get:
+      tags: [Dokumente]
+      summary: Dokumente auflisten
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: kategorie
+          in: query
+          schema:
+            type: string
+        - name: auftragId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Liste der Dokumente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dokument'
+
+    post:
+      tags: [Dokumente]
+      summary: Dokument hochladen
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                kategorie:
+                  type: string
+                auftragId:
+                  type: string
+      responses:
+        '201':
+          description: Dokument hochgeladen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dokument'
+
+  # ============================================================
+  # MOBILE APP ENDPOINTS
+  # ============================================================
+  /api/app/auth:
+    post:
+      tags: [Mobile App]
+      summary: App-Login
+      description: Authentifizierung für Mobile App (gibt JWT zurück)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login erfolgreich
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Ungültige Credentials
+
+  /api/app/me:
+    get:
+      tags: [Mobile App]
+      summary: Aktueller Benutzer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Benutzer-Daten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/app/auftraege:
+    get:
+      tags: [Mobile App]
+      summary: Aufträge für App (optimiert)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aufträge
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuftragApp'
+
+  /api/app/stunden:
+    post:
+      tags: [Mobile App]
+      summary: Zeiteintrag aus App erfassen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StundeneintragCreate'
+      responses:
+        '201':
+          description: Erfolgreich erfasst
+
+# ============================================================
+# COMPONENTS
+# ============================================================
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js Session Cookie
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT für Mobile App
+
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Ressourcen-ID (cuid)
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+      description: Max. Anzahl Ergebnisse
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Anzahl zu überspringender Ergebnisse
+    search:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: Volltextsuche
+
+  responses:
+    BadRequest:
+      description: Ungültige Anfrage
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Nicht authentifiziert
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Keine Berechtigung
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ressource nicht gefunden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "Ressource nicht gefunden"
+        details:
+          type: string
+          example: "Auftrag mit ID xyz existiert nicht"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, worker, viewer]
+        tenantId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Auftrag:
+      type: object
+      properties:
+        id:
+          type: string
+        nummer:
+          type: string
+          example: "AU-2026-0001"
+        titel:
+          type: string
+        typ:
+          type: string
+          enum: [pflanzung, pflege, schutz, ernte, sonstiges]
+        status:
+          type: string
+          enum: [anfrage, geplant, aktiv, abgeschlossen, abgerechnet, storniert]
+        beschreibung:
+          type: string
+        flaeche_ha:
+          type: number
+        standort:
+          type: string
+        bundesland:
+          type: string
+        waldbesitzer:
+          type: string
+        waldbesitzerEmail:
+          type: string
+          format: email
+        startDatum:
+          type: string
+          format: date
+        endDatum:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuftragCreate:
+      type: object
+      required: [titel, typ]
+      properties:
+        titel:
+          type: string
+        typ:
+          type: string
+          enum: [pflanzung, pflege, schutz, ernte, sonstiges]
+        status:
+          type: string
+          default: anfrage
+        beschreibung:
+          type: string
+        flaeche_ha:
+          type: number
+        standort:
+          type: string
+        bundesland:
+          type: string
+        waldbesitzer:
+          type: string
+        waldbesitzerEmail:
+          type: string
+          format: email
+        startDatum:
+          type: string
+          format: date
+        endDatum:
+          type: string
+          format: date
+        saisonId:
+          type: string
+        gruppeId:
+          type: string
+
+    AuftragUpdate:
+      type: object
+      properties:
+        titel:
+          type: string
+        typ:
+          type: string
+        status:
+          type: string
+        beschreibung:
+          type: string
+        flaeche_ha:
+          type: number
+        standort:
+          type: string
+        bundesland:
+          type: string
+        waldbesitzer:
+          type: string
+        waldbesitzerEmail:
+          type: string
+        startDatum:
+          type: string
+          format: date
+        endDatum:
+          type: string
+          format: date
+
+    AuftragApp:
+      type: object
+      description: Optimierte Auftrag-Daten für Mobile App
+      properties:
+        id:
+          type: string
+        nummer:
+          type: string
+        titel:
+          type: string
+        status:
+          type: string
+        standort:
+          type: string
+        startDatum:
+          type: string
+          format: date
+
+    Kontakt:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        typ:
+          type: string
+          enum: [kunde, forstamt, lieferant, partner, sonstig]
+        telefon:
+          type: string
+        email:
+          type: string
+          format: email
+        forstamt:
+          type: string
+        revier:
+          type: string
+        adresse:
+          type: string
+        notizen:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    KontaktCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        typ:
+          type: string
+          enum: [kunde, forstamt, lieferant, partner, sonstig]
+          default: sonstig
+        telefon:
+          type: string
+        email:
+          type: string
+          format: email
+        forstamt:
+          type: string
+        revier:
+          type: string
+        adresse:
+          type: string
+        notizen:
+          type: string
+
+    Mitarbeiter:
+      type: object
+      properties:
+        id:
+          type: string
+        personalnummer:
+          type: string
+        vorname:
+          type: string
+        nachname:
+          type: string
+        email:
+          type: string
+          format: email
+        telefon:
+          type: string
+        position:
+          type: string
+        eintrittsdatum:
+          type: string
+          format: date
+        aktiv:
+          type: boolean
+        gruppeId:
+          type: string
+
+    MitarbeiterCreate:
+      type: object
+      required: [vorname, nachname]
+      properties:
+        personalnummer:
+          type: string
+        vorname:
+          type: string
+        nachname:
+          type: string
+        email:
+          type: string
+          format: email
+        telefon:
+          type: string
+        position:
+          type: string
+        eintrittsdatum:
+          type: string
+          format: date
+        gruppeId:
+          type: string
+
+    Stundeneintrag:
+      type: object
+      properties:
+        id:
+          type: string
+        mitarbeiterId:
+          type: string
+        auftragId:
+          type: string
+        datum:
+          type: string
+          format: date
+        stunden:
+          type: number
+        taetigkeit:
+          type: string
+        notizen:
+          type: string
+
+    StundeneintragCreate:
+      type: object
+      required: [mitarbeiterId, datum, stunden]
+      properties:
+        mitarbeiterId:
+          type: string
+        auftragId:
+          type: string
+        datum:
+          type: string
+          format: date
+        stunden:
+          type: number
+          minimum: 0.25
+          maximum: 24
+        taetigkeit:
+          type: string
+        notizen:
+          type: string
+
+    Rechnung:
+      type: object
+      properties:
+        id:
+          type: string
+        nummer:
+          type: string
+          example: "RE-2026-0001"
+        auftragId:
+          type: string
+        kundenname:
+          type: string
+        status:
+          type: string
+          enum: [entwurf, offen, bezahlt, storniert, mahnung]
+        nettobetrag:
+          type: number
+        mwst:
+          type: number
+        bruttobetrag:
+          type: number
+        rechnungsdatum:
+          type: string
+          format: date
+        faelligkeitsdatum:
+          type: string
+          format: date
+        bezahltAm:
+          type: string
+          format: date
+
+    RechnungCreate:
+      type: object
+      properties:
+        auftragId:
+          type: string
+        kundenname:
+          type: string
+        positionen:
+          type: array
+          items:
+            type: object
+            properties:
+              bezeichnung:
+                type: string
+              menge:
+                type: number
+              einheit:
+                type: string
+              einzelpreis:
+                type: number
+
+    Lagerartikel:
+      type: object
+      properties:
+        id:
+          type: string
+        artikelnummer:
+          type: string
+        bezeichnung:
+          type: string
+        kategorie:
+          type: string
+        einheit:
+          type: string
+        bestand:
+          type: number
+        mindestbestand:
+          type: number
+        lagerort:
+          type: string
+
+    LagerartikelCreate:
+      type: object
+      required: [bezeichnung]
+      properties:
+        artikelnummer:
+          type: string
+        bezeichnung:
+          type: string
+        kategorie:
+          type: string
+        einheit:
+          type: string
+          default: Stück
+        bestand:
+          type: number
+          default: 0
+        mindestbestand:
+          type: number
+        lagerort:
+          type: string
+
+    Dokument:
+      type: object
+      properties:
+        id:
+          type: string
+        dateiname:
+          type: string
+        url:
+          type: string
+        groesse:
+          type: integer
+          description: Dateigröße in Bytes
+        mimeType:
+          type: string
+        kategorie:
+          type: string
+        auftragId:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+
+    Material:
+      type: object
+      properties:
+        id:
+          type: string
+        artikelId:
+          type: string
+        bezeichnung:
+          type: string
+        menge:
+          type: number
+        einheit:
+          type: string
