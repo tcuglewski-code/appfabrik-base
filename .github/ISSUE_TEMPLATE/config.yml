@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Fragen & Diskussionen
+    url: https://mission-control-tawny-omega.vercel.app
+    about: Für allgemeine Fragen nutze bitte Mission Control
+  - name: 📖 Dokumentation
+    url: https://github.com/tcuglewski-code/feldhub-base/blob/main/docs/DEVELOPER.md
+    about: Lies zuerst die Entwickler-Dokumentation

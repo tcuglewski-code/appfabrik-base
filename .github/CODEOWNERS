@@ -1,0 +1,52 @@
+# CODEOWNERS — Feldhub Base
+# Diese Datei definiert wer automatisch als Reviewer hinzugefügt wird
+# bei Änderungen in bestimmten Bereichen.
+#
+# Syntax: <pattern> <owner> [@owner2 ...]
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: Alle Änderungen → Tomek
+*                               @tcuglewski-code
+
+# ============================================
+# KRITISCHE BEREICHE — Immer Tomek
+# ============================================
+
+# Datenbank-Schema — Migrationen können Datenverlust verursachen
+/prisma/                        @tcuglewski-code
+
+# Auth-Konfiguration — Security-kritisch
+/src/lib/auth.ts                @tcuglewski-code
+/src/lib/auth/                  @tcuglewski-code
+
+# Rechtliche Dokumente — Compliance-relevant
+/legal/                         @tcuglewski-code
+
+# CI/CD-Pipeline — Deploy-Einstellungen
+/.github/workflows/             @tcuglewski-code
+
+# Umgebungsvariablen-Template
+.env.example                    @tcuglewski-code
+
+# ============================================
+# DOKUMENTATION — Kann breiter reviewed werden
+# ============================================
+
+# Docs können von jedem geändert werden, Tomek als Fallback
+/docs/                          @tcuglewski-code
+*.md                            @tcuglewski-code
+
+# ============================================
+# APP-TEMPLATE — Mobile App spezifisch
+# ============================================
+
+/app-template/                  @tcuglewski-code
+
+# ============================================
+# HINWEISE
+# ============================================
+# 
+# - CODEOWNERS werden automatisch als Reviewer zu PRs hinzugefügt
+# - Branch Protection kann "Require review from Code Owners" erzwingen
+# - Mehrere Owners: Mindestens einer muss approven
+# - Team-Syntax: @org/team-name (nicht aktiv, da privates Repo)
