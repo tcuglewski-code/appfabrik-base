@@ -1,0 +1,95 @@
+{
+  "invoiceNumber": "FH-2026-00001",
+  "invoiceDate": "2026-03-31",
+  "dueDate": "2026-04-14",
+  "servicePeriodStart": "2026-03-01",
+  "servicePeriodEnd": "2026-03-31",
+  
+  "sender": {
+    "company": "Feldhub UG (haftungsbeschränkt)",
+    "name": "Tomek Cuglewski",
+    "street": "Musterstraße 123",
+    "zip": "12345",
+    "city": "Berlin",
+    "country": "Deutschland",
+    "email": "rechnung@feldhub.de",
+    "phone": "+49 30 12345678",
+    "vatId": "DE123456789"
+  },
+  
+  "recipient": {
+    "company": "Koch Aufforstung GmbH",
+    "name": "Michael Koch",
+    "street": "Waldweg 42",
+    "zip": "54321",
+    "city": "Trier",
+    "country": "Deutschland",
+    "email": "buchhaltung@koch-aufforstung.de"
+  },
+  
+  "lineItems": [
+    {
+      "position": 1,
+      "description": "ForstManager Professional - Monatslizenz März 2026",
+      "quantity": 1,
+      "unit": "Monat",
+      "unitPrice": 599.00,
+      "taxRate": 19,
+      "netAmount": 599.00,
+      "taxAmount": 113.81,
+      "grossAmount": 712.81
+    },
+    {
+      "position": 2,
+      "description": "Mobile App - Zusatzlizenzen (5 Nutzer)",
+      "quantity": 5,
+      "unit": "Lizenz",
+      "unitPrice": 29.00,
+      "taxRate": 19,
+      "netAmount": 145.00,
+      "taxAmount": 27.55,
+      "grossAmount": 172.55
+    },
+    {
+      "position": 3,
+      "description": "Technischer Support - Premium",
+      "quantity": 2,
+      "unit": "Stunden",
+      "unitPrice": 95.00,
+      "taxRate": 19,
+      "netAmount": 190.00,
+      "taxAmount": 36.10,
+      "grossAmount": 226.10
+    }
+  ],
+  
+  "subtotalNet": 934.00,
+  "taxSummary": [
+    {
+      "taxRate": 19,
+      "netAmount": 934.00,
+      "taxAmount": 177.46
+    }
+  ],
+  "totalTax": 177.46,
+  "totalGross": 1111.46,
+  
+  "paymentTerms": "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
+  "paymentDueDays": 14,
+  "paymentDetails": {
+    "method": "sepa",
+    "bankName": "Deutsche Bank",
+    "iban": "DE89 3704 0044 0532 0130 00",
+    "bic": "COBADEFFXXX",
+    "accountHolder": "Feldhub UG"
+  },
+  
+  "notes": "Vielen Dank für Ihr Vertrauen in Feldhub! Bei Fragen zu dieser Rechnung kontaktieren Sie uns gerne unter rechnung@feldhub.de.",
+  
+  "status": "sent",
+  "reverseCharge": false,
+  "smallBusinessExemption": false,
+  
+  "primaryColor": "#2D5A27",
+  "tenantId": "KOCH-001"
+}
