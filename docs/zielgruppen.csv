@@ -1,0 +1,6 @@
+Rang,Branche,TAM_Min_Mio,TAM_Max_Mio,KMU_Betriebe_DACH,Digitalisierungsgrad_Pct,Score,Priorität,Status,Go-to-Market-Start
+1,GaLaBau / Landschaftsbau,150,250,45000,20,4.20,HIGH,Q2 2026
+2,Handwerk & Bau,1200,2000,650000,35,3.65,MEDIUM,Q4 2026
+3,Forst & Aufforstung,80,150,12000,15,3.75,HIGH (Referenz),Erschlossen
+4,Agrar / Landwirtschaft,300,500,220000,15,3.65,MEDIUM,Q1 2027
+5,Facility / Reinigung,200,350,28000,40,3.00,LOW,2027+
