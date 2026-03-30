@@ -690,6 +690,151 @@ model ActivityLog {
   @@index([tenantId, createdAt])
 }
 
+// ========== ROLE (konfigurierbares Rollen-System) ==========
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String                           // admin, manager, worker, client
+  displayName String                           // "Administrator", "Mitarbeiter"
+  description String?
+  permissions String[] @default([])            // ["projects:*", "invoices:read"]
+  isSystem    Boolean  @default(false)         // System-Rollen können nicht gelöscht werden
+  isDefault   Boolean  @default(false)         // Standard-Rolle für neue User
+  color       String?                          // Für UI-Badges
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// ========== PERMISSION (für feingranulare Berechtigungen) ==========
+model Permission {
+  id          String   @id @default(cuid())
+  tenantId    String?                          // null = global/system permissions
+  resource    String                           // projects, invoices, users, etc.
+  action      String                           // create, read, update, delete, *
+  scope       String?                          // own, team, all
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, resource, action, scope])
+  @@index([tenantId])
+}
+
+// ========== NOTIFICATION ==========
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  type      String                             // info, warning, success, error, reminder
+  title     String
+  message   String
+  link      String?                            // Optional: Link zur relevanten Seite
+  entityType String?                           // Project, Task, Invoice, etc.
+  entityId  String?
+  read      Boolean  @default(false)
+  readAt    DateTime?
+  expiresAt DateTime?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([userId, read])
+}
+
+// ========== MAGIC TOKEN (passwortloser Login) ==========
+model MagicToken {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  token     String   @unique
+  type      String   @default("login")         // login, password_reset, email_verify, invite
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  metadata  Json?                              // z.B. invitedBy, role
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([token])
+}
+
+// ========== AUDIT LOG (DSGVO-konform) ==========
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?
+  userName   String?                           // Für gelöschte User
+  action     String                            // create, read, update, delete, export, login, logout
+  entityType String
+  entityId   String?
+  entityName String?
+  oldData    Json?                             // Vorheriger Zustand (für DSGVO)
+  newData    Json?                             // Neuer Zustand
+  ipAddress  String?
+  userAgent  String?
+  success    Boolean  @default(true)
+  errorMessage String?
+  duration   Int?                              // Millisekunden
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, entityType])
+  @@index([tenantId, action])
+  @@index([tenantId, createdAt])
+  @@index([userId])
+}
+
+// ========== FILE (generische Dateiverwaltung) ==========
+model File {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String                          // Original-Dateiname
+  storageName  String                          // Interner Name (UUID.ext)
+  storagePath  String                          // Vollständiger Pfad
+  storageType  String   @default("local")      // local, s3, nextcloud
+  mimeType     String
+  size         Int                             // Bytes
+  width        Int?                            // Für Bilder
+  height       Int?                            // Für Bilder
+  checksum     String?                         // MD5/SHA256
+  uploadedBy   String?                         // User ID
+  
+  // Zuordnung (optional, ein File kann unzugeordnet sein)
+  entityType   String?                         // Project, Document, DailyReport, etc.
+  entityId     String?
+  
+  // Metadaten
+  public       Boolean  @default(false)        // Öffentlich zugänglich?
+  temporary    Boolean  @default(false)        // Temp-Upload, wird nach X Stunden gelöscht
+  expiresAt    DateTime?
+  metadata     Json?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, entityType, entityId])
+  @@index([storageType])
+}
+
+// ========== TENANT CONFIG (Runtime-Konfiguration) ==========
+model TenantConfig {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  value     Json                               // Kann beliebige Struktur sein
+  encrypted Boolean  @default(false)           // Für sensible Daten (API-Keys)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
 // ========== SYSTEM CONFIG ==========
 model SystemConfig {
   id        String   @id @default(cuid())
