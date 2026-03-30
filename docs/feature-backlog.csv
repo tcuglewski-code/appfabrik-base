@@ -1,0 +1,16 @@
+feature,area,impact,confidence,ease,ice_score,priority,sprint_code,status
+ROI-Rechner Website,sales,9,8,7,50.4,HIGH,JH,todo
+Angebots-PDF Template,sales,8,7,8,44.8,MEDIUM,JG,todo
+MC LLM Cost Dashboard,ops,7,9,6,37.8,MEDIUM,JD,done
+FAQ Knowledge Base,cs,7,8,6,33.6,MEDIUM,JM,todo
+Kalender-Integration App,prod,8,6,4,19.2,LOW,,backlog
+Offline GPS-Tracking,app,9,8,3,21.6,LOW,,backlog
+Dark/Light Theme,base,4,7,7,19.6,LOW,JU,backlog
+WhatsApp Notifications,app,6,5,5,15.0,LOW,,backlog
+Multi-Language Support,base,5,4,3,6.0,DEFER,,backlog
+Monatlicher Kunden-Report,cs,7,8,7,39.2,MEDIUM,JO,todo
+Bug-Reporting Prozess,cs,6,7,8,33.6,MEDIUM,JN,todo
+Cash Flow Dashboard MC,ops,8,7,5,28.0,MEDIUM,JQ,todo
+Upselling-Trigger,cs,7,6,6,25.2,LOW,JP,backlog
+Rechnungsvorlage,ops,7,8,9,50.4,HIGH,JT,todo
+DSGVO Compliance Monitor,ops,8,7,6,33.6,MEDIUM,JS,todo
