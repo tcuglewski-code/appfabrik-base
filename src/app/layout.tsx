@@ -3,6 +3,7 @@ import "./globals.css"
 import { Toaster } from "sonner"
 import { ThemeProvider, ContrastWarningBanner } from "@/components/providers/ThemeProvider"
 import { SessionProvider } from "@/components/providers/SessionProvider"
+import { PlausibleProvider } from "@/components/providers/PlausibleProvider"
 import { tenantConfig } from "@/config/tenant"
 
 export const metadata: Metadata = {
@@ -48,16 +49,18 @@ export default function RootLayout({
       <body className="antialiased theme-transition">
         <SessionProvider>
           <ThemeProvider config={tenantConfig}>
-            {children}
-            <Toaster 
-              position="top-right" 
-              richColors 
-              toastOptions={{
-                className: 'surface',
-              }}
-            />
-            {/* Kontrast-Warnungen nur in Development */}
-            <ContrastWarningBanner />
+            <PlausibleProvider config={tenantConfig}>
+              {children}
+              <Toaster 
+                position="top-right" 
+                richColors 
+                toastOptions={{
+                  className: 'surface',
+                }}
+              />
+              {/* Kontrast-Warnungen nur in Development */}
+              <ContrastWarningBanner />
+            </PlausibleProvider>
           </ThemeProvider>
         </SessionProvider>
       </body>

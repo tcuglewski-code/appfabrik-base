@@ -109,6 +109,24 @@ export const TenantIntegrationSchema = z.object({
 });
 
 /**
+ * Analytics Schema (Plausible Analytics - DSGVO-konform)
+ */
+export const TenantAnalyticsSchema = z.object({
+  plausible: z.object({
+    enabled: z.boolean().default(false).describe('Plausible Analytics aktiviert'),
+    domain: z.string().optional().describe('Site-Domain in Plausible (z.B. ka-forstmanager.vercel.app)'),
+    apiHost: z.string().url().default('https://plausible.io').describe('Plausible API Host (für Self-Hosted)'),
+    trackLocalhost: z.boolean().default(false).describe('Tracking auch auf localhost'),
+    customEvents: z.array(z.string()).default([]).describe('Custom Events die getrackt werden'),
+  }).default({
+    enabled: false,
+    apiHost: 'https://plausible.io',
+    trackLocalhost: false,
+    customEvents: [],
+  }),
+});
+
+/**
  * Branding Schema
  */
 export const TenantBrandingSchema = z.object({
@@ -468,6 +486,16 @@ export const TenantConfigSchema = z.object({
   
   // Nummernkreise
   numberFormats: TenantNumberFormatsSchema,
+  
+  // Analytics (Plausible - DSGVO-konform, Cookie-frei)
+  analytics: TenantAnalyticsSchema.optional().default({
+    plausible: {
+      enabled: false,
+      apiHost: 'https://plausible.io',
+      trackLocalhost: false,
+      customEvents: [],
+    },
+  }),
 });
 
 // =============================================================================
@@ -493,6 +521,7 @@ export type TenantModules = z.infer<typeof TenantModulesSchema>;
 export type TenantIntegrations = z.infer<typeof TenantIntegrationsSchema>;
 export type TenantAuth = z.infer<typeof TenantAuthSchema>;
 export type TenantDatabase = z.infer<typeof TenantDatabaseSchema>;
+export type TenantAnalytics = z.infer<typeof TenantAnalyticsSchema>;
 
 // =============================================================================
 // VALIDATION HELPER

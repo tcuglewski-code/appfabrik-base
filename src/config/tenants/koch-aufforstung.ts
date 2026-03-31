@@ -331,6 +331,15 @@ export const kochAufforstungTenant: TenantConfig = {
       },
     },
     stripe: { enabled: false },
+    zipayo: { 
+      enabled: true,
+      config: {
+        merchantId: 'koch-aufforstung',
+        baseUrl: 'https://zipayo.de',
+        sandbox: false,
+        delayedCapture: false,
+      },
+    },
     smtp: {
       enabled: true,
       config: {
@@ -384,6 +393,25 @@ export const kochAufforstungTenant: TenantConfig = {
     rechnung: 'RE-{YYYY}-{NNNN}',
     angebot: 'AN-{YYYY}-{NNNN}',
     protokoll: 'PP-{YYYY}-{NNNN}',
+  },
+  
+  // Analytics - DSGVO-konform mit Plausible (Cookie-frei)
+  analytics: {
+    plausible: {
+      enabled: false, // Tomek: Aktivieren nach Plausible-Account Setup
+      domain: 'ka-forstmanager.vercel.app',
+      apiHost: 'https://plausible.io',
+      trackLocalhost: false,
+      customEvents: [
+        'Login',
+        'Task Created',
+        'Task Completed',
+        'PDF Exported',
+        'Förderberatung Started',
+        'Förderberatung Completed',
+        'Zipayo Payment Initiated',
+      ],
+    },
   },
 };
 

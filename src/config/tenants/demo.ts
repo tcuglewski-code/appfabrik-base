@@ -239,9 +239,21 @@ export const demoTenant: TenantConfig = {
     nextcloud: { enabled: false },
     wordpress: { enabled: false },
     stripe: { enabled: false },
+    zipayo: { enabled: false },
     smtp: { enabled: false },
     webhooks: { enabled: false },
     slack: { enabled: false },
+  },
+  
+  // Analytics - DSGVO-konform mit Plausible (Cookie-frei)
+  analytics: {
+    plausible: {
+      enabled: false, // Aktivieren wenn Plausible-Account existiert
+      domain: undefined, // z.B. 'demo.feldhub.io'
+      apiHost: 'https://plausible.io',
+      trackLocalhost: false,
+      customEvents: ['Login', 'Task Created', 'PDF Exported'],
+    },
   },
   
   features: {

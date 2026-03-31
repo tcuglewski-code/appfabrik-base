@@ -127,6 +127,82 @@ Einfacher Hinweis in der Datenschutzerklärung:
 - [ ] Plausible Growth Plan abonnieren (Tomek)
 - [ ] Feldhub Website Domain hinzufügen
 - [ ] Koch Aufforstung ForstManager Domain hinzufügen
-- [ ] `next-plausible` in feldhub-base integrieren
-- [ ] Custom Events implementieren
+- [x] PlausibleProvider in feldhub-base integriert (31.03.2026)
+- [x] tenant.ts Analytics-Schema implementiert (31.03.2026)
+- [ ] Custom Events in Komponenten implementieren
 - [ ] Analytics Dashboard im Mission Control einbinden (API-Key)
+
+---
+
+## Code-Integration (31.03.2026)
+
+### PlausibleProvider
+
+Die Integration erfolgt über `src/components/providers/PlausibleProvider.tsx`:
+
+```tsx
+import { PlausibleProvider } from "@/components/providers/PlausibleProvider"
+
+// In layout.tsx bereits eingebunden
+<PlausibleProvider config={tenantConfig}>
+  {children}
+</PlausibleProvider>
+```
+
+### Aktivierung per Tenant-Config
+
+In `src/config/tenants/[tenant].ts`:
+
+```typescript
+analytics: {
+  plausible: {
+    enabled: true,
+    domain: 'ka-forstmanager.vercel.app', // Muss in Plausible registriert sein
+    apiHost: 'https://plausible.io',       // Oder Self-Hosted URL
+    trackLocalhost: false,                  // true für Development
+    customEvents: ['Login', 'Task Created', 'PDF Exported'],
+  },
+},
+```
+
+### Custom Event Tracking
+
+```tsx
+import { usePlausible, PLAUSIBLE_EVENTS } from "@/components/providers/PlausibleProvider"
+
+function LoginButton() {
+  const { trackEvent } = usePlausible();
+  
+  const handleLogin = async () => {
+    await login();
+    trackEvent(PLAUSIBLE_EVENTS.LOGIN, { method: 'credentials' });
+  };
+  
+  return <button onClick={handleLogin}>Login</button>;
+}
+```
+
+### Standard-Events
+
+| Event | Beschreibung |
+|-------|-------------|
+| `Login` | Erfolgreicher Login |
+| `Logout` | Logout |
+| `Task Created` | Neue Aufgabe angelegt |
+| `Task Completed` | Aufgabe abgeschlossen |
+| `Report Generated` | Bericht exportiert |
+| `PDF Exported` | PDF heruntergeladen |
+| `Onboarding Completed` | Wizard abgeschlossen |
+| `Zipayo Payment Initiated` | Zahlung gestartet |
+
+---
+
+## Tomek TODO
+
+1. **Plausible Account erstellen:** https://plausible.io/register
+2. **Growth Plan ($19/mo) für 100k Pageviews**
+3. **Sites hinzufügen:**
+   - `feldhub.io` (wenn Website live)
+   - `ka-forstmanager.vercel.app`
+4. **ENV Variable setzen:** `NEXT_PUBLIC_PLAUSIBLE_ENABLED=true`
+5. **tenant.ts aktivieren:** `analytics.plausible.enabled: true`
