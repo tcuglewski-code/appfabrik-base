@@ -339,6 +339,22 @@ export const TenantIntegrationsSchema = z.object({
     }).optional(),
   }),
   stripe: TenantIntegrationSchema,
+  zipayo: TenantIntegrationSchema.extend({
+    config: z.object({
+      /** Merchant-ID aus Zipayo Dashboard */
+      merchantId: z.string().describe('Zipayo Merchant ID'),
+      /** API-Key für Server-Side Calls */
+      apiKey: z.string().optional().describe('Zipayo API Key (ENV)'),
+      /** Zipayo Dashboard/API Base URL */
+      baseUrl: z.string().url().default('https://zipayo.de'),
+      /** Sandbox-Modus für Tests */
+      sandbox: z.boolean().default(false),
+      /** Delayed Capture aktivieren (Autorisierung → später Capture) */
+      delayedCapture: z.boolean().default(false),
+      /** Webhook-Secret für Signature-Verification */
+      webhookSecret: z.string().optional(),
+    }).optional(),
+  }),
   smtp: TenantIntegrationSchema.extend({
     config: z.object({
       host: z.string(),
