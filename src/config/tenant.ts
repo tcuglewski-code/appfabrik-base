@@ -286,12 +286,40 @@ export const TenantModulesSchema = z.object({
   gruppen: TenantModuleSchema,
   angebote: TenantModuleSchema,
   
-  // Branchenspezifische Module
+  // Branchenspezifische Module (Legacy - per-feature)
   foerderung: TenantModuleSchema,
   abnahme: TenantModuleSchema,
   qualifikationen: TenantModuleSchema,
   saatguternte: TenantModuleSchema,
   flaechen: TenantModuleSchema,
+  
+  // 3-Layer-Architektur: Branchenmodule mit Feature-Flags
+  // Forst-Modul (src/modules/forst/)
+  forst: z.object({
+    enabled: z.boolean().default(false),
+    features: z.object({
+      revierplan: z.boolean().default(false),        // Revierplan + Maßnahmen
+      baumartenKatalog: z.boolean().default(false),  // Baumarten-Datenbank
+      foerderantrag: z.boolean().default(false),     // Förderantrag-Verwaltung
+      waldkarte: z.boolean().default(false),         // GIS-Waldkarte
+      forstRechtDoku: z.boolean().default(false),    // Forstrecht-Bibliothek
+    }).default({}),
+    /** Optionale regionale Konfiguration */
+    region: z.object({
+      bundesland: z.string().optional(),
+      kartenDienst: z.enum(['openstreetmap', 'bayernatlas', 'mapbox']).default('openstreetmap'),
+    }).default({}),
+  }).optional(),
+  
+  // Landschaftsbau-Modul (src/modules/landschaftsbau/) — Geplant für Kunde #2
+  landschaftsbau: z.object({
+    enabled: z.boolean().default(false),
+    features: z.object({
+      gelaendekartierung: z.boolean().default(false),
+      pflanzplan: z.boolean().default(false),
+      materialplanung: z.boolean().default(false),
+    }).default({}),
+  }).optional(),
 });
 
 /**

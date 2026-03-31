@@ -103,6 +103,22 @@ export const kochAufforstungTenant: TenantConfig = {
     qualifikationen: { enabled: true, icon: 'Award' },
     saatguternte: { enabled: true, icon: 'TreeDeciduous' },
     flaechen: { enabled: true, label: 'Waldflächen', icon: 'Map' },
+    
+    // 3-Layer: Forst-Modul mit Feature-Flags
+    forst: {
+      enabled: true,
+      features: {
+        revierplan: true,        // Revierplan + Maßnahmenplanung
+        baumartenKatalog: true,  // Baumarten-Datenbank mit Preisen
+        foerderantrag: true,     // GAK + Bayerische Förderanträge
+        waldkarte: true,         // GIS-Karte mit Revieren + Beständen
+        forstRechtDoku: true,    // BWaldG + BayWaldG Dokumentation
+      },
+      region: {
+        bundesland: 'Bayern',
+        kartenDienst: 'bayernatlas', // BayernAtlas WMS für Bayern
+      },
+    },
   },
   
   roles: [
