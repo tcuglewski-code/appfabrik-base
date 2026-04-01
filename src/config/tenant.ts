@@ -357,6 +357,12 @@ export const TenantIntegrationsSchema = z.object({
     }).optional(),
   }),
   stripe: TenantIntegrationSchema,
+  /**
+   * Zipayo Payment Integration (Consumer/Terminal)
+   * 
+   * Für POS/Terminal-Zahlungen via Stripe Connect
+   * @see /docs/ZIPAYO-INTEGRATION.md
+   */
   zipayo: TenantIntegrationSchema.extend({
     config: z.object({
       /** Merchant-ID aus Zipayo Dashboard */
@@ -371,6 +377,35 @@ export const TenantIntegrationsSchema = z.object({
       delayedCapture: z.boolean().default(false),
       /** Webhook-Secret für Signature-Verification */
       webhookSecret: z.string().optional(),
+    }).optional(),
+  }),
+  /**
+   * Mollie Payment Integration (B2B)
+   * 
+   * Für B2B-Rechnungszahlungen via SEPA-Lastschrift, Kreditkarte, etc.
+   * API Key kommt aus ENV: MOLLIE_API_KEY
+   * 
+   * @see /docs/MOLLIE-INTEGRATION.md
+   */
+  mollie: TenantIntegrationSchema.extend({
+    config: z.object({
+      /** Webhook URL für Payment-Status-Updates */
+      webhookUrl: z.string().url().optional(),
+      /** Erlaubte Zahlungsmethoden (default: alle) */
+      allowedMethods: z.array(z.enum([
+        'ideal',
+        'creditcard',
+        'bancontact',
+        'sepa',
+        'giropay',
+        'eps',
+        'przelewy24',
+        'paypal',
+      ])).optional(),
+      /** Test-Modus erzwingen (auch mit Live-Key) */
+      forceTestMode: z.boolean().optional(),
+      /** Standard-Lokalisierung für Checkout */
+      locale: z.enum(['de_DE', 'en_US', 'nl_NL', 'fr_FR']).optional(),
     }).optional(),
   }),
   smtp: TenantIntegrationSchema.extend({
