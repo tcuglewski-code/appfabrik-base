@@ -260,6 +260,52 @@ export const TenantFeaturesSchema = z.object({
 });
 
 /**
+ * Retention Policy Schema (DSGVO-konform)
+ * Konfiguriert Aufbewahrungsfristen für verschiedene Datentypen
+ */
+export const TenantRetentionSchema = z.object({
+  /** GPS-Rohdaten: Tage bis Löschung (Min: 7, Max: 365, Default: 30) */
+  gpsRawDays: z.number().min(7).max(365).default(30)
+    .describe('Aufbewahrung GPS-Rohdaten in Tagen'),
+  
+  /** Protokoll-GPS-Daten: Tage bis Löschung (Min: 30, Max: 3650, Default: 90) */
+  gpsProtokollDays: z.number().min(30).max(3650).default(90)
+    .describe('Aufbewahrung GPS-Daten aus Protokollen in Tagen'),
+  
+  /** Soft-Delete → Hard-Delete: Tage bis endgültige Löschung (Min: 7, Max: 180, Default: 30) */
+  softDeleteDays: z.number().min(7).max(180).default(30)
+    .describe('Tage bis Soft-Deleted Daten endgültig gelöscht werden'),
+  
+  /** Audit-Log: Tage bis Löschung (Min: 30, Max: 3650, Default: 90) */
+  auditLogDays: z.number().min(30).max(3650).default(90)
+    .describe('Aufbewahrung Audit-Log Einträge in Tagen'),
+  
+  /** AI-Audit-Log: Tage bis Löschung (Min: 30, Max: 365, Default: 90) */
+  aiAuditLogDays: z.number().min(30).max(365).default(90)
+    .describe('Aufbewahrung AI-Audit-Log Einträge in Tagen'),
+  
+  /** Session-Daten: Tage bis Löschung (Min: 1, Max: 90, Default: 7) */
+  sessionDays: z.number().min(1).max(90).default(7)
+    .describe('Aufbewahrung Session-Daten in Tagen'),
+  
+  /** Temporäre Dateien: Tage bis Löschung (Min: 1, Max: 30, Default: 3) */
+  tempFilesDays: z.number().min(1).max(30).default(3)
+    .describe('Aufbewahrung temporärer Dateien in Tagen'),
+  
+  /** Rechnungen/Steuerrelevant: Jahre bis Archivierung (Min: 6, Max: 15, Default: 10, GoBD) */
+  invoiceYears: z.number().min(6).max(15).default(10)
+    .describe('Aufbewahrung steuerrelevanter Daten in Jahren (GoBD)'),
+  
+  /** Cold Storage Archivierung: Jahre nach denen Daten ins Archiv wandern (Min: 1, Max: 10, Default: 3) */
+  coldStorageYears: z.number().min(1).max(10).default(3)
+    .describe('Jahre bis Daten ins Cold Storage Archiv wandern'),
+  
+  /** Aktiviert automatische Retention-Crons */
+  autoCleanupEnabled: z.boolean().default(true)
+    .describe('Automatische Bereinigung aktiviert'),
+});
+
+/**
  * UI-Settings Schema
  */
 export const TenantUISchema = z.object({
@@ -531,6 +577,20 @@ export const TenantConfigSchema = z.object({
       customEvents: [],
     },
   }),
+  
+  // Retention Policy (DSGVO-konforme Aufbewahrungsfristen)
+  retention: TenantRetentionSchema.optional().default({
+    gpsRawDays: 30,
+    gpsProtokollDays: 90,
+    softDeleteDays: 30,
+    auditLogDays: 90,
+    aiAuditLogDays: 90,
+    sessionDays: 7,
+    tempFilesDays: 3,
+    invoiceYears: 10,
+    coldStorageYears: 3,
+    autoCleanupEnabled: true,
+  }),
 });
 
 // =============================================================================
@@ -557,6 +617,7 @@ export type TenantIntegrations = z.infer<typeof TenantIntegrationsSchema>;
 export type TenantAuth = z.infer<typeof TenantAuthSchema>;
 export type TenantDatabase = z.infer<typeof TenantDatabaseSchema>;
 export type TenantAnalytics = z.infer<typeof TenantAnalyticsSchema>;
+export type TenantRetention = z.infer<typeof TenantRetentionSchema>;
 
 // =============================================================================
 // VALIDATION HELPER
@@ -694,6 +755,42 @@ export function getModuleLabel(moduleName: keyof TenantModules, config: TenantCo
   const module = config.modules[moduleName];
   if (!module) return moduleName;
   return module.label ?? moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
+}
+
+/**
+ * Gibt die Retention-Konfiguration zurück mit Defaults
+ */
+export function getRetentionConfig(config: TenantConfig): TenantRetention {
+  return config.retention ?? {
+    gpsRawDays: 30,
+    gpsProtokollDays: 90,
+    softDeleteDays: 30,
+    auditLogDays: 90,
+    aiAuditLogDays: 90,
+    sessionDays: 7,
+    tempFilesDays: 3,
+    invoiceYears: 10,
+    coldStorageYears: 3,
+    autoCleanupEnabled: true,
+  };
+}
+
+/**
+ * Berechnet das Löschdatum basierend auf Retention-Tagen
+ */
+export function getRetentionCutoffDate(days: number): Date {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  cutoff.setHours(0, 0, 0, 0);
+  return cutoff;
+}
+
+/**
+ * Prüft ob ein Datum älter als die konfigurierte Retention ist
+ */
+export function isExpired(date: Date, retentionDays: number): boolean {
+  const cutoff = getRetentionCutoffDate(retentionDays);
+  return date < cutoff;
 }
 
 // =============================================================================
